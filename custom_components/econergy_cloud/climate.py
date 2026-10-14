@@ -100,7 +100,8 @@ class EconergyRadiator(CoordinatorEntity, ClimateEntity):
             )
         )
 
-    def _on_clock_minute(self, now):
+    async def _on_clock_minute(self, now):
+        # Run on Home Assistant's event loop, never in the executor thread.
         self.async_write_ha_state()
 
     @property
