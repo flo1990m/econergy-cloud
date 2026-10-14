@@ -1,0 +1,7 @@
+{
+  "config": {
+    "step": {"user": {"title": "Econergy Cloud", "description": "Connectez votre compte Econergy.", "data": {"email": "E-mail", "password": "Mot de passe"}}},
+    "error": {"invalid_auth": "Identifiants invalides", "cannot_connect": "Connexion impossible"},
+    "abort": {"already_configured": "Ce foyer est déjà configuré"}
+  }
+}
