@@ -134,9 +134,27 @@ class EconergyApi:
             raise EconergyApiError("Mode non pris en charge : écriture bloquée")
 
         async with self.__init_write_lock():
-            home = await self.get_home()  # Always fetch fresh, never cached coordinator data.
-            device = self._device_in_home(home, device_id)
-            original = self._validate_config(device.get("config"))
+            # Retry READS only when the API returns a partial configuration.
+            # Never send an incomplete configuration or retry a PUT.
+            for attempt in range(4):  # Initial read + 3 retries.
+                if attempt:
+                    await asyncio.sleep(2)
+                home = await self.get_home()  # Always fresh, never cached data.
+                device = self._device_in_home(home, device_id)
+                try:
+                    original = self._validate_config(device.get("config"))
+                except EconergyApiError as exc:
+                    if attempt == 3 or not str(exc).startswith((
+                        "Configuration incomplète", "Configuration absente"
+                    )):
+                        raise
+                    _LOGGER.warning(
+                        "Econergy: configuration partielle pour %s "
+                        "(lecture %s/4) ; nouvelle lecture dans 2 s : %s",
+                        device_id, attempt + 1, exc,
+                    )
+                    continue
+                break
             payload = deepcopy(original)
             if mode is not None:
                 payload["mode"] = mode
