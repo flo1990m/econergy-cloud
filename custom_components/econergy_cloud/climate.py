@@ -125,7 +125,9 @@ class EconergyRadiator(CoordinatorEntity, ClimateEntity):
             await self._api.set_radiator(self._device_id, mode=mode, temperature=temperature)
         except (EconergyAuthError, EconergyApiError) as exc:
             raise HomeAssistantError(f"Commande Econergy refusée : {exc}") from exc
-        await self.coordinator.async_request_refresh()
+        # Force a fresh read after a user command; do not let the coordinator's
+        # request-refresh debounce delay the state confirmation shown in HA.
+        await self.coordinator.async_refresh()
 
     async def async_set_temperature(self, **kwargs):
         value = kwargs.get(ATTR_TEMPERATURE)
