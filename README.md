@@ -9,7 +9,7 @@ Intégration communautaire **non officielle** pour radiateurs Econergy / Carrera
 - Température ambiante et contrôle via une entité `climate` par radiateur.
 - Modes **Arrêt**, **Hors gel (7 °C)**, **Manuel** et **Programmation**.
 - Consigne active calculée à partir des plages de programmation (Éco/Confort), horaires locaux.
-- Mise à jour des données cloud toutes les deux minutes.
+- Actualisation groupée toutes les **5 minutes dès qu’au moins un radiateur du foyer n’est pas à l’arrêt**, et toutes les **15 minutes lorsque tous les radiateurs sont à l’arrêt**. La fréquence s’applique à toutes les données du foyer, car l’API les renvoie dans une même réponse.
 - Écritures protégées : lecture préalable des 13 paramètres et 21 entrées de programme, refus d’écrire en cas de données incomplètes, et contrôle après écriture.
 
 ## Installation HACS (dépôt personnalisé)
