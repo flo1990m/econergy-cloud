@@ -54,7 +54,7 @@ class EconergyApi:
         result = await self._request("PUT", "/auth", payload={
             "email": self.email,
             "password": self.password,
-            "agent": "android",
+            "agent": "ECONERGY_APP",
             "version": APP_VERSION,
         })
         if not isinstance(result, dict) or not result.get("token") or not result.get("homeId"):
@@ -62,6 +62,8 @@ class EconergyApi:
         self.token = result["token"]
         self.home_id = str(result["homeId"])
         self.home_name = result.get("homeName")
+        # Match the mobile app's session check before using its diagnostic route.
+        await self._request("GET", f"/auth?homeId={self.home_id}", auth=True)
 
     async def get_home(self) -> dict:
         if not self.token:
@@ -74,6 +76,39 @@ class EconergyApi:
         if not isinstance(result, dict):
             raise EconergyApiError("Home response is not an object")
         return result
+
+    async def diagnose_home(self) -> list[dict]:
+        """Ask all radiators in the configured home to report their current state.
+
+        This is the same diagnostic request used by the Econergy Android app.
+        It does not modify modes or setpoints. If the mobile session has expired,
+        refresh it once and retry this diagnostic request once.
+        """
+        if not self.home_id:
+            await self.login()
+        path = f"/diagnosys/{self.home_id}"
+        try:
+            result = await self._request("POST", path, auth=True)
+        except EconergyAuthError:
+            await self.login()
+            result = await self._request("POST", f"/diagnosys/{self.home_id}", auth=True)
+
+        if isinstance(result, dict):
+            result = result.get("devices") or result.get("results") or result.get("items")
+        if not isinstance(result, list):
+            raise EconergyApiError("Diagnostic response does not contain an acknowledgement list")
+
+        acknowledgements = []
+        for item in result:
+            if not isinstance(item, dict) or not item.get("device"):
+                continue
+            acknowledgements.append({
+                "device": str(item["device"]),
+                "acknowledge": bool(item.get("acknowledge")),
+            })
+        if not acknowledgements:
+            raise EconergyApiError("Diagnostic response contains no usable acknowledgements")
+        return acknowledgements
 
     # Fields confirmed from the unmodified radiator configuration returned
     # by /v2/homes/{homeId}. Never create defaults for missing fields.
@@ -136,10 +171,10 @@ class EconergyApi:
         async with self.__init_write_lock():
             # Retry READS only when the API returns a partial configuration.
             # Never send an incomplete configuration or retry a PUT.
-            for attempt in range(4):  # Initial read + 3 retries.
+            for attempt in range(4):  # Initial read + 3 read-only retries.
                 if attempt:
                     await asyncio.sleep(2)
-                home = await self.get_home()  # Always fresh, never cached data.
+                home = await self.get_home()  # Always fetch fresh, never cached coordinator data.
                 device = self._device_in_home(home, device_id)
                 try:
                     original = self._validate_config(device.get("config"))

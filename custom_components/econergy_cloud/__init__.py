@@ -1,4 +1,4 @@
-"""Econergy cloud integration."""
+"""Econergy Cloud integration."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -11,29 +11,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import EconergyApi, EconergyAuthError, EconergyApiError
-from .const import DOMAIN, OFF_UPDATE_INTERVAL_SECONDS, UPDATE_INTERVAL_SECONDS
+from .const import DOMAIN, UPDATE_INTERVAL_SECONDS
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "climate"]
-
-
-def _all_radiators_off(home_data: dict) -> bool:
-    """Return True only when every known radiator is explicitly in OFF mode."""
-    devices = home_data.get("devices")
-    if not isinstance(devices, list) or not devices:
-        return False
-
-    for device in devices:
-        if not isinstance(device, dict):
-            return False
-        config = device.get("config")
-        if not isinstance(config, dict):
-            return False
-        mode = config.get("mode")
-        if isinstance(mode, bool) or str(mode) != "0":
-            return False
-
-    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -42,18 +23,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     async def _update():
+        # The mobile diagnostic asks the radiators to report their current state.
+        # A diagnostic outage must not disable the existing read/control channel:
+        # log it, then continue with the regular home read.
         try:
-            home_data = await api.get_home()
-            # One API request returns the entire home, including all radiator
-            # temperatures and configurations. Use the slower interval only
-            # when every radiator is explicitly OFF.
-            interval = (
-                OFF_UPDATE_INTERVAL_SECONDS
-                if _all_radiators_off(home_data)
-                else UPDATE_INTERVAL_SECONDS
+            acknowledgements = await api.diagnose_home()
+            accepted = sum(1 for item in acknowledgements if item.get("acknowledge"))
+            _LOGGER.debug(
+                "Econergy diagnostic: %s/%s radiators acknowledged",
+                accepted,
+                len(acknowledgements),
             )
-            coordinator.update_interval = timedelta(seconds=interval)
-            return home_data
+        except EconergyAuthError as exc:
+            _LOGGER.warning("Econergy diagnostic authentication failed; reading cached cloud state: %s", exc)
+        except EconergyApiError as exc:
+            _LOGGER.warning("Econergy diagnostic unavailable; reading cached cloud state: %s", exc)
+
+        try:
+            return await api.get_home()
         except EconergyAuthError as exc:
             raise ConfigEntryAuthFailed("Econergy authentication failed") from exc
         except EconergyApiError as exc:
@@ -72,6 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise
     except Exception as exc:
         raise ConfigEntryNotReady(str(exc)) from exc
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = (api, coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
