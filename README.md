@@ -6,7 +6,7 @@ Intégration communautaire **non officielle** pour radiateurs Econergy / Carrera
 
 - Configuration par adresse e-mail et mot de passe Econergy, depuis l’interface de Home Assistant.
 - Découverte des radiateurs du foyer.
-- Température ambiante et contrôle via une entité \`climate\` par radiateur.
+- Température ambiante et contrôle via une entité `climate` par radiateur.
 - Modes **Arrêt**, **Hors gel (7 °C)**, **Manuel** et **Programmation**.
 - Consigne active calculée à partir des plages de programmation (Éco/Confort), horaires locaux.
 - **Diagnostic réseau des radiateurs toutes les 5 minutes**, y compris lorsque les radiateurs sont à l'arrêt, puis lecture groupée du domicile pour récupérer les températures et états remontés.
@@ -20,13 +20,13 @@ Dans HACS, ajouter ce dépôt GitHub comme **dépôt personnalisé** de catégor
 
 ## Installation manuelle
 
-Copier \`custom_components/econergy_cloud\` dans le dossier \`/config/custom_components/\` et redémarrer Home Assistant.
+Copier `custom_components/econergy_cloud` dans le dossier `/config/custom_components/` et redémarrer Home Assistant.
 
 ## Utilisation
 
-Chaque radiateur expose une entité \`climate\` et un capteur de température ambiante. La consigne modifiée depuis Home Assistant bascule en mode Manuel. Les modes Hors gel et Programmation conservent les réglages Eco/Confort existants.
+Chaque radiateur expose une entité `climate` et un capteur de température ambiante. La consigne modifiée depuis Home Assistant bascule en mode Manuel. Les modes Hors gel et Programmation conservent les réglages Eco/Confort existants.
 
-Le diagnostic \`POST /diagnosys/{homeId}\` est le même mécanisme utilisé par l'application Econergy pour demander aux radiateurs de remonter leur état. Il est exécuté avant chaque lecture du domicile, toutes les cinq minutes. La lecture habituelle \`GET /v2/homes/{homeId}\` reste le canal qui alimente les entités Home Assistant.
+Le diagnostic `POST /diagnosys/{homeId}` est le même mécanisme utilisé par l'application Econergy pour demander aux radiateurs de remonter leur état. Il est exécuté avant chaque lecture du domicile, toutes les cinq minutes. La lecture habituelle `GET /v2/homes/{homeId}` reste le canal qui alimente les entités Home Assistant.
 
 ## Notes et précautions
 
@@ -45,4 +45,4 @@ Ouvrir un ticket dans l’onglet Issues du dépôt en précisant la version et l
 
 ## Licence
 
-Voir le fichier \`LICENSE\`.
+Voir le fichier `LICENSE`.
