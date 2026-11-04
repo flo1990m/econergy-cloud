@@ -22,6 +22,7 @@ class EconergyTemperatureSensor(CoordinatorEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_force_update = True
     _attr_icon = "mdi:thermometer"
     _attr_has_entity_name = True
 
@@ -67,6 +68,15 @@ class EconergyTemperatureSensor(CoordinatorEntity, SensorEntity):
             return round(float(value), 1) if value is not None else None
         except (ValueError, TypeError):
             return None
+
+    @property
+    def extra_state_attributes(self):
+        home = self.coordinator.data or {}
+        attributes = {}
+        if home.get("_diagnostic_requested_at"):
+            attributes["derniere_demande_diagnostic"] = home["_diagnostic_requested_at"]
+            attributes["radiateurs_ayant_accuse_reception"] = home.get("_diagnostic_acknowledged")
+        return attributes
 
     @property
     def available(self):

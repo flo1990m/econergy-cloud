@@ -1,0 +1,9 @@
+Mise à jour Econergy Cloud V1.1.1
+
+1. Sauvegarder /config/custom_components/econergy_cloud.
+2. Décompresser l'archive.
+3. Remplacer uniquement le dossier custom_components/econergy_cloud.
+4. Ne pas modifier custom_components/econergy_cloud_v2.
+5. Redémarrer Home Assistant.
+
+Après chaque diagnostic accepté, l'intégration attend 15 secondes avant de lire le domicile, car la remontée d'état des radiateurs est asynchrone. La cadence est réglée à 4 min 45 s après cette attente, soit environ 5 minutes entre les demandes. Les capteurs publient également l'heure de la dernière demande de diagnostic dans leurs attributs.
