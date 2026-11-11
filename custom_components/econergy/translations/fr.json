@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Econergy Cloud",
+        "description": "Connectez votre compte Econergy. Une page Econergy sécurisée vous permettra de choisir les domiciles à autoriser. La connexion utilise OAuth 2.0 avec PKCE (sans secret client)."
+      },
+      "select_home": {
+        "title": "Choisir le domicile",
+        "description": "Sélectionnez le domicile Econergy à associer à cette entrée Home Assistant. Vous pourrez ajouter une autre entrée pour un autre domicile autorisé.",
+        "data": {
+          "home_id": "Domicile"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnecter Econergy",
+        "description": "Votre autorisation Econergy doit être renouvelée. Continuez pour ouvrir la page de consentement Econergy."
+      }
+    },
+    "error": {
+      "invalid_auth": "Le compte Econergy n’a pas autorisé la connexion.",
+      "cannot_connect": "Impossible de valider l’accès à l’API Econergy : {detail}"
+    },
+    "abort": {
+      "already_configured": "Ce domicile Econergy est déjà configuré.",
+      "home_not_found": "Le domicile choisi n’est plus accessible.",
+      "oauth_invalid_token": "Econergy a renvoyé un jeton d’accès invalide.",
+      "refresh_token_missing": "Econergy n’a pas fourni de jeton de renouvellement. L’intégration ne peut pas garantir le renouvellement automatique de la connexion.",
+      "missing_scopes": "Autorisations manquantes : {scopes}. Recommencez en acceptant readonly et write.",
+      "no_homes": "Aucun domicile n’est accessible avec cette autorisation.",
+      "reauth_home_unavailable": "Le domicile configuré n’est plus autorisé pour cette application.",
+      "oauth_flow_expired": "Le parcours de connexion a expiré. Relancez l’ajout de l’intégration."
+    }
+  }
+}

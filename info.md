@@ -1,0 +1,1 @@
+Intégration communautaire Home Assistant pour piloter les radiateurs Econergy / Carrera via l'API Econergy Lab. Elle fournit le contrôle du chauffage, un éditeur de programmation hebdomadaire, les réglages disponibles, les capteurs d'état et la consommation estimée sur 15 jours.

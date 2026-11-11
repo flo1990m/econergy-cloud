@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Econergy Cloud",
+        "description": "Connect your Econergy account. A secure Econergy page will let you choose which homes to authorize. Sign-in uses OAuth 2.0 with PKCE (no client secret)."
+      },
+      "select_home": {
+        "title": "Choose home",
+        "description": "Select the Econergy home to link to this Home Assistant entry. You can add another entry for another authorized home.",
+        "data": {
+          "home_id": "Home"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect Econergy",
+        "description": "Your Econergy authorization must be renewed. Continue to open the Econergy consent page."
+      }
+    },
+    "error": {
+      "invalid_auth": "The Econergy account did not authorize the connection.",
+      "cannot_connect": "Could not validate Econergy API access: {detail}"
+    },
+    "abort": {
+      "already_configured": "This Econergy home is already configured.",
+      "home_not_found": "The selected home is no longer accessible.",
+      "oauth_invalid_token": "Econergy returned an invalid access token.",
+      "refresh_token_missing": "Econergy did not return a refresh token. The integration cannot guarantee automatic sign-in renewal.",
+      "missing_scopes": "Missing permissions: {scopes}. Reconnect and grant readonly and write.",
+      "no_homes": "No homes are accessible with this authorization.",
+      "reauth_home_unavailable": "The configured home is no longer authorized for this application.",
+      "oauth_flow_expired": "The sign-in flow expired. Start adding the integration again."
+    }
+  }
+}
