@@ -5,6 +5,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.const import UnitOfTemperature, UnitOfTime
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -273,35 +274,98 @@ class EconergySetpointKindSensor(_EconergyDeviceEntity, SensorEntity):
     _attr_name = "Régime appliqué"
     _attr_icon = "mdi:thermostat-auto"
     _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = ["Confort", "Éco", "Manuel"]
+    _attr_options = ["Arrêt", "Hors gel", "Manuel", "Confort", "Éco", "Programmation", "Non déterminé"]
 
     def __init__(self, coordinator: EconergyCoordinator, device: dict[str, Any]) -> None:
         super().__init__(coordinator, device)
         self._attr_unique_id = f"{DOMAIN}_{self._device_id}_setpoint_kind"
 
     @property
-    def native_value(self) -> str | None:
-        value = ((self._device or {}).get("state") or {}).get("setpointKind")
-        return {"COMFORT": "Confort", "ECO": "Éco", "MANUAL": "Manuel"}.get(
-            str(value).upper() if value is not None else ""
-        )
+    def native_value(self) -> str:
+        device = self._device or {}
+        state = device.get("state") or {}
+
+        # Prefer the explicit API field when it is available.
+        kind = str(state.get("setpointKind") or "").strip().upper()
+        kind_values = {
+            "COMFORT": "Confort",
+            "CONFORT": "Confort",
+            "ECO": "Éco",
+            "MANUAL": "Manuel",
+            "FROST": "Hors gel",
+            "OFF": "Arrêt",
+        }
+        if kind in kind_values:
+            return kind_values[kind]
+
+        mode = str(state.get("mode") or "").strip().upper()
+        if mode == "OFF":
+            return "Arrêt"
+        if mode == "FROST":
+            return "Hors gel"
+        if mode == "MANUAL":
+            return "Manuel"
+        if mode != "PROG":
+            return "Non déterminé"
+
+        # In PROG, compare the live setpoint with the schedule targets first.
+        program = self.coordinator.find_program(self._device_id) or {}
+        try:
+            setpoint = float(state.get("setpointC"))
+            eco = float(program.get("ecoC"))
+            comfort = float(program.get("comfortC"))
+            if abs(setpoint - comfort) < 0.1:
+                return "Confort"
+            if abs(setpoint - eco) < 0.1:
+                return "Éco"
+        except (TypeError, ValueError):
+            pass
+
+        # If setpointKind is absent, use the current local time and the
+        # published weekly comfort periods to determine the active regime.
+        days = program.get("days") or {}
+        day_keys = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+        now = dt_util.now()
+        day_periods = days.get(day_keys[now.weekday()], [])
+        now_minutes = now.hour * 60 + now.minute
+        for period in day_periods if isinstance(day_periods, list) else []:
+            if not isinstance(period, dict):
+                continue
+            try:
+                start_hour, start_minute = (int(part) for part in str(period.get("start")).split(":"))
+                end_hour, end_minute = (int(part) for part in str(period.get("end")).split(":"))
+                start_minutes = start_hour * 60 + start_minute
+                end_minutes = end_hour * 60 + end_minute
+            except (TypeError, ValueError):
+                continue
+            if start_minutes <= now_minutes < end_minutes:
+                return "Confort"
+
+        return "Éco" if program else "Programmation"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         state = (self._device or {}).get("state") or {}
-        return {"mode": state.get("mode"), "consigne_c": state.get("setpointC")}
+        program = self.coordinator.find_program(self._device_id) or {}
+        return {
+            "mode": state.get("mode"),
+            "consigne_c": state.get("setpointC"),
+            "setpoint_kind_api": state.get("setpointKind"),
+            "eco_c": program.get("ecoC"),
+            "comfort_c": program.get("comfortC"),
+        }
 
 
 class EconergyConsumptionSensor(_EconergyDeviceEntity, SensorEntity):
     """Most recent daily consumption point, with all 15 days retained as attributes."""
 
     _attr_has_entity_name = True
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: EconergyCoordinator, device: dict[str, Any], field: str) -> None:
         super().__init__(coordinator, device)
         self._field = field
         if field == "estimatedKWh":
+            self._attr_state_class = SensorStateClass.TOTAL
             self._attr_name = "Consommation estimée (dernier jour)"
             self._attr_unique_id = f"{DOMAIN}_{self._device_id}_consumption_latest_day"
             self._attr_device_class = SensorDeviceClass.ENERGY
@@ -309,6 +373,7 @@ class EconergyConsumptionSensor(_EconergyDeviceEntity, SensorEntity):
             self._attr_suggested_display_precision = 2
             self._attr_icon = "mdi:lightning-bolt"
         else:
+            self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_name = "Durée de chauffe (dernier jour)"
             self._attr_unique_id = f"{DOMAIN}_{self._device_id}_heating_duration_latest_day"
             self._attr_device_class = SensorDeviceClass.DURATION
