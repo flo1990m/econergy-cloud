@@ -11,6 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .api import EconergyApiError
 from .const import DOMAIN
 from .coordinator import EconergyCoordinator
 
@@ -138,6 +139,22 @@ class EconergyManualButton(_EconergyButton):
     async def async_press(self) -> None:
         try:
             manual = await self.coordinator.async_get_manual(self._device_id, "fr")
+        except EconergyApiError as err:
+            if "MANUAL_NOT_FOUND" in str(err):
+                device = self._device
+                info = device.get("info") or {}
+                reference = str(info.get("reference") or "référence inconnue")
+                name = str(device.get("name") or "Radiateur")
+                persistent_notification.async_create(
+                    self.hass,
+                    f"Aucune notice PDF n'est actuellement disponible sur les serveurs Econergy pour le modèle **{reference}**.",
+                    title=f"Notice Econergy indisponible – {name}",
+                    notification_id=f"econergy_manual_unavailable_{self._device_id}",
+                )
+                return
+            raise HomeAssistantError(
+                f"Notice Econergy indisponible pour ce radiateur : {err}"
+            ) from err
         except Exception as err:
             raise HomeAssistantError(
                 f"Notice Econergy indisponible pour ce radiateur : {err}"
