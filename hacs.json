@@ -1,3 +1,6 @@
 {
-  "name": "Econergy Cloud"
+  "name": "Econergy Cloud",
+  "zip_release": true,
+  "filename": "econergy.zip",
+  "hide_default_branch": true
 }
