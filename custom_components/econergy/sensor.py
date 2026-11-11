@@ -436,7 +436,7 @@ class EconergyLastCommandSensor(_EconergyDeviceEntity, SensorEntity):
     def native_value(self) -> str | None:
         command = self.coordinator.last_commands.get(self._device_id) or {}
         status = command.get("status")
-        return str(status) if status else None
+        return str(status) if status else "Aucune commande enregistrée"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
