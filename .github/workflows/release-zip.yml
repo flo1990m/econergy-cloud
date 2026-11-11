@@ -1,0 +1,63 @@
+name: Attach release ZIP
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to process (leave empty for the latest release)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    name: Build and upload Econergy ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Select release tag
+        id: target
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          elif [ -n "$RELEASE_TAG" ]; then
+            TAG="$RELEASE_TAG"
+          else
+            TAG="$(gh release list --limit 1 --json tagName --jq '.[0].tagName')"
+          fi
+          if [ -z "$TAG" ]; then
+            echo "No GitHub release found."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Selected release: $TAG"
+
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.tag }}
+
+      - name: Create econergy.zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd custom_components/econergy
+          zip -r ../../econergy.zip . -x "*.pyc" "__pycache__/*" ".DS_Store"
+          cd ../..
+          test -s econergy.zip
+          unzip -l econergy.zip
+
+      - name: Upload ZIP to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.target.outputs.tag }}
+        run: gh release upload "$TAG" econergy.zip --clobber
