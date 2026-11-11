@@ -320,12 +320,12 @@ class EconergyRadiatorClimate(CoordinatorEntity, RestoreEntity, ClimateEntity):
         self._last_command_status = result.get("command_status") or "SENT"
         self._last_command_confirmed = None
         self._last_command_message = "Commande envoyée ; affichage provisoire, confirmation de l'état en cours."
-        self.coordinator.last_commands[self._device_id] = {
+        self.coordinator.record_last_command(self._device_id, {
             "command_id": command_id,
             "status": self._last_command_status,
             "kind": "chauffage",
             "updated_at": self._last_command_at,
-        }
+        })
         if self.coordinator.data is not None:
             self.coordinator.async_set_updated_data({
                 **self.coordinator.data,
@@ -392,12 +392,12 @@ class EconergyRadiatorClimate(CoordinatorEntity, RestoreEntity, ClimateEntity):
                 status_applied = self.coordinator.update_device_from_status(latest_device)
 
             self._last_command_status = result.get("command_status")
-            self.coordinator.last_commands[self._device_id] = {
+            self.coordinator.record_last_command(self._device_id, {
                 "command_id": command_id,
                 "status": self._last_command_status,
                 "kind": "chauffage",
                 "updated_at": datetime.now().astimezone().isoformat(),
-            }
+            })
             if self.coordinator.data is not None:
                 self.coordinator.async_set_updated_data({
                     **self.coordinator.data,
@@ -447,12 +447,12 @@ class EconergyRadiatorClimate(CoordinatorEntity, RestoreEntity, ClimateEntity):
         if self._last_command_id != command_id:
             return
         self._last_command_status = status
-        self.coordinator.last_commands[self._device_id] = {
+        self.coordinator.record_last_command(self._device_id, {
             "command_id": command_id,
             "status": status,
             "kind": "chauffage",
             "updated_at": datetime.now().astimezone().isoformat(),
-        }
+        })
         if self.coordinator.data is not None:
             self.coordinator.async_set_updated_data({
                 **self.coordinator.data,
