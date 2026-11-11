@@ -19,6 +19,7 @@ from .api import (
     EconergyRateLimitError,
 )
 from .const import (
+    DOMAIN,
     PROGRAM_CONFIRM_TIMEOUT_SECONDS,
     PROGRAM_POLL_INTERVAL_SECONDS,
     STATUS_REQUEST_COMMAND_TIMEOUT_SECONDS,
