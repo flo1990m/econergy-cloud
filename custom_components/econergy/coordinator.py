@@ -9,6 +9,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CoreState, EVENT_HOMEASSISTANT_STARTED, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import (
@@ -54,6 +55,7 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._consumption_lock = asyncio.Lock()
         self._consumption_load_task: asyncio.Task | None = None
         self.last_commands: dict[str, dict[str, Any]] = {}
+        self._last_commands_store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}_last_commands")
         self.program_locks: dict[str, asyncio.Lock] = {}
         self.status_request_cooldowns: dict[str, float] = {}
         self.status_request_last_attempt: dict[str, float] = {}
@@ -74,6 +76,14 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch the device inventory only; defer status commands and programs."""
         devices = await self.api.get_devices(self.home_id)
         self._initial_devices = [dict(device) for device in devices]
+        known_ids = {str(device.get("id")) for device in self._initial_devices if device.get("id")}
+        saved_commands = await self._last_commands_store.async_load()
+        if isinstance(saved_commands, dict):
+            self.last_commands = {
+                str(device_id): dict(command)
+                for device_id, command in saved_commands.items()
+                if str(device_id) in known_ids and isinstance(command, dict)
+            }
         for device in self._initial_devices:
             device_id = str(device.get("id") or "")
             if device_id:
@@ -99,10 +109,21 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "settings_errors": {},
             "consumption": {},
             "consumption_errors": {},
-            "last_commands": {},
+            "last_commands": dict(self.last_commands),
             "api_version": self.api.api_version,
             "expires_at": getattr(self, "token_expires_at", None),
         })
+
+    def record_last_command(self, device_id: str, command: dict[str, Any]) -> None:
+        """Update and persist the latest command summary for one radiator."""
+        device_id = str(device_id)
+        self.last_commands[device_id] = dict(command)
+        self._last_commands_store.async_delay_save(lambda: dict(self.last_commands), 1)
+        if self.data is not None:
+            self.async_set_updated_data({
+                **self.data,
+                "last_commands": dict(self.last_commands),
+            })
 
     def async_start_deferred_initialization(self, entry: ConfigEntry) -> None:
         """Start the full first refresh only after HA has finished booting."""
@@ -701,12 +722,12 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             self.programs[device_id] = program
             self.program_errors.pop(device_id, None)
-            self.last_commands[device_id] = {
+            self.record_last_command(device_id, {
                 "command_id": result.get("command_id"),
                 "status": result.get("command_status"),
                 "kind": "programme",
                 "updated_at": result.get("observed_at"),
-            }
+            })
             if self.data is not None:
                 self.async_set_updated_data({
                     **self.data,
@@ -783,12 +804,12 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         lock = self.device_write_locks.setdefault(device_id, asyncio.Lock())
         async with lock:
             result = await self.api.patch_settings(device_id, {key: value})
-            self.last_commands[device_id] = {
+            self.record_last_command(device_id, {
                 "command_id": result.get("command_id"),
                 "status": result.get("command_status"),
                 "kind": "réglages",
                 "updated_at": result.get("observed_at"),
-            }
+            })
             latest: dict[str, Any] | None = None
             last_error: str | None = None
             deadline = asyncio.get_running_loop().time() + 20
