@@ -123,6 +123,20 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "error": None,
                 }
 
+        # Re-submit the local archive on startup as well. This repairs Recorder
+        # statistics if they were unavailable during an earlier import or if
+        # its database was restored separately from Home Assistant storage.
+        for device in self._initial_devices:
+            device_id = str(device.get("id") or "")
+            archived = self.consumption.get(device_id) or {}
+            archived_days = archived.get("days") or []
+            if device_id and archived_days:
+                self._import_consumption_statistics(
+                    device_id,
+                    str(device.get("name") or device_id),
+                    archived_days,
+                )
+
         # Publish a lightweight initial snapshot so climate and sensor entities
         # can be created immediately. No status POST, command polling or program
         # reads are awaited during config-entry setup.
