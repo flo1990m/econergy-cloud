@@ -1,7 +1,7 @@
 # Econergy Cloud — Home Assistant
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://www.hacs.xyz/)
-[![Version bêta](https://img.shields.io/badge/version-2.1.4--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
+[![Version bêta](https://img.shields.io/badge/version-2.1.5--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
 
 Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera, basée sur l'API officielle Econergy Lab.
 
@@ -19,7 +19,7 @@ Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera
 - Suivi des commandes avec attente de leur confirmation par l'API ; le dernier statut est conservé après un redémarrage de Home Assistant et aucune commande incertaine n'est renvoyée automatiquement.
 - Régime appliqué déterminé à partir de l'état du radiateur et, en mode Programmation, de la consigne et du créneau hebdomadaire en cours.
 - Authentification OAuth 2.0 avec PKCE ; aucun mot de passe Econergy ni jeton à copier dans YAML.
-- Exemples de tuiles Lovelace pour piloter les radiateurs, avec modèles `button-card` réutilisables et indicateur de chauffe réel.
+- Exemples Lovelace facultatifs : tuile de pilotage de base, état détaillé, réglages, diagnostic, actions, graphique des 15 derniers jours et statistiques sur 30 jours.
 
 ## Installation avec HACS / Marketplace
 
@@ -44,9 +44,25 @@ Après une mise à jour HACS, redémarre Home Assistant si nécessaire. Ne suppr
 
 ## Programmation hebdomadaire
 
-Sur la fiche de chaque radiateur, utilise l'action **Programmer le radiateur**. L'éditeur présente les jours de la semaine et permet de définir jusqu'à trois plages Confort par jour. En dehors de ces plages, le radiateur reste en Éco.
+Sur la fiche de chaque radiateur, utilise l'action **Programmes du radiateur**. L'éditeur présente les jours de la semaine et permet de définir jusqu'à trois plages Confort par jour. En dehors de ces plages, le radiateur reste en Éco.
 
 L'enregistrement du planning et l'activation du mode `PROG` sont deux opérations distinctes : après avoir sauvegardé les horaires, active le mode Programmation pour que le radiateur les applique.
+
+## Exemples Lovelace facultatifs
+
+Le dossier `custom_components/econergy/examples/lovelace` contient plusieurs cartes indépendantes : tu peux en ajouter seulement certaines à ton tableau de bord.
+
+- `radiateur_bureau.yaml` : tuile de pilotage compacte avec l'indicateur de chauffe réel (modèle de base, nécessite `custom:button-card`).
+- `radiateur_bureau_etat.yaml` : état, température, régime, chauffe, fenêtre et ventilateur.
+- `radiateur_bureau_consommation.yaml` : graphiques Recorder sur 30 jours à partir des statistiques long terme Econergy.
+- `radiateur_bureau_consommation_15_jours.yaml` : graphique API des 15 derniers jours, avec les dates au format JJ/MM (nécessite `custom:apexcharts-card`).
+- `radiateur_bureau_reglages.yaml` : consignes Éco/Confort, butée max, protection enfant et verrouillage du clavier.
+- `radiateur_bureau_diagnostic.yaml` : firmware, puissance, dernière communication et statut de commande.
+- `radiateur_bureau_actions.yaml` : actualisation, programmation et notice.
+
+Les exemples sont fournis pour `climate.econergy_bureau`. Les identifiants des radiateurs et certains `entity_id` peuvent différer selon le nom et l'historique de ton installation : vérifie-les dans **Paramètres → Appareils et services → Econergy → Bureau** avant de coller une carte.
+
+**Historique de consommation :** les relevés du cloud sont importés comme statistiques long terme externes, avec des identifiants de la forme `econergy:<identifiant_du_radiateur>_estimated_consumption` et `econergy:<identifiant_du_radiateur>_heating_duration`. La carte `statistics-graph` doit utiliser ces identifiants de statistiques, pas les entités `sensor.*` qui n'exposent que la dernière journée. L'onglet Historique natif d'une entité Home Assistant montre les changements d'état de cette entité ; il ne présente pas les statistiques externes. Le graphique 30 jours affiche les jours disponibles (15 au premier import), puis s'enrichit au fil de l'archivage.
 
 ## Données et limites connues
 
