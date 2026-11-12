@@ -111,9 +111,14 @@ class EconergyRefreshConsumptionButton(_EconergyButton):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        days = (self.coordinator.consumption.get(self._device_id) or {}).get("days") or []
+        api_days = days[-15:]
         return {
             "dernier_rechargement": self._last_refresh,
-            "nombre_de_jours": len((self.coordinator.consumption.get(self._device_id) or {}).get("days") or []),
+            "nombre_de_jours": len(api_days),
+            "nombre_de_jours_archive": len(days),
+            "date_debut_archive": days[0].get("date") if days else None,
+            "date_fin_archive": days[-1].get("date") if days else None,
             "erreur_api": self.coordinator.consumption_errors.get(self._device_id),
         }
 

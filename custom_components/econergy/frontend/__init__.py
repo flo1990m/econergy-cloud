@@ -18,7 +18,7 @@ from homeassistant.helpers.event import async_call_later
 
 _LOGGER = logging.getLogger(__name__)
 URL_BASE = "/econergy"
-CARD_VERSION = "2.1.2"
+CARD_VERSION = "2.1.3"
 CARD_FILENAME = "econergy-weekly-program-card.js"
 FRONTEND_DIR = Path(__file__).parent
 REGISTRATION_FLAG = "econergy_frontend_registered"

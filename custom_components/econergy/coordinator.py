@@ -4,14 +4,22 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
+from homeassistant.components.recorder.models import (
+    StatisticData,
+    StatisticMeanType,
+    StatisticMetaData,
+)
+from homeassistant.components.recorder.statistics import async_add_external_statistics
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CoreState, EVENT_HOMEASSISTANT_STARTED, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util.unit_conversion import EnergyConverter
 
 from .api import (
     EconergyApi,
@@ -54,6 +62,9 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.consumption: dict[str, dict[str, Any]] = {}
         self.consumption_errors: dict[str, str] = {}
         self.consumption_loaded_date: str | None = None
+        self._consumption_store = Store(
+            hass, 1, f"{DOMAIN}_{entry.entry_id}_consumption_history"
+        )
         self._consumption_lock = asyncio.Lock()
         self._consumption_load_task: asyncio.Task | None = None
         self.last_commands: dict[str, dict[str, Any]] = {}
@@ -80,6 +91,19 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         devices = await self.api.get_devices(self.home_id)
         self._initial_devices = [dict(device) for device in devices]
         known_ids = {str(device.get("id")) for device in self._initial_devices if device.get("id")}
+        saved_consumption = await self._consumption_store.async_load()
+        if isinstance(saved_consumption, dict):
+            saved_devices = saved_consumption.get("devices") or {}
+            if isinstance(saved_devices, dict):
+                self.consumption = {
+                    str(device_id): dict(value)
+                    for device_id, value in saved_devices.items()
+                    if str(device_id) in known_ids and isinstance(value, dict)
+                }
+            loaded_date = saved_consumption.get("loaded_date")
+            if isinstance(loaded_date, str):
+                self.consumption_loaded_date = loaded_date
+
         saved_commands = await self._last_commands_store.async_load()
         if isinstance(saved_commands, dict):
             self.last_commands = {
@@ -99,6 +123,20 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "error": None,
                 }
 
+        # Re-submit the local archive on startup as well. This repairs Recorder
+        # statistics if they were unavailable during an earlier import or if
+        # its database was restored separately from Home Assistant storage.
+        for device in self._initial_devices:
+            device_id = str(device.get("id") or "")
+            archived = self.consumption.get(device_id) or {}
+            archived_days = archived.get("days") or []
+            if device_id and archived_days:
+                self._import_consumption_statistics(
+                    device_id,
+                    str(device.get("name") or device_id),
+                    archived_days,
+                )
+
         # Publish a lightweight initial snapshot so climate and sensor entities
         # can be created immediately. No status POST, command polling or program
         # reads are awaited during config-entry setup.
@@ -110,12 +148,158 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "program_errors": {},
             "settings": {},
             "settings_errors": {},
-            "consumption": {},
+            "consumption": dict(self.consumption),
             "consumption_errors": {},
+            "consumption_loaded_date": self.consumption_loaded_date,
             "last_commands": dict(self.last_commands),
             "api_version": self.api.api_version,
             "expires_at": getattr(self, "token_expires_at", None),
         })
+
+
+    def _schedule_consumption_save(self) -> None:
+        """Persist the complete daily archive independently of the API's 15-day window."""
+        self._consumption_store.async_delay_save(
+            lambda: {
+                "devices": dict(self.consumption),
+                "loaded_date": self.consumption_loaded_date,
+            },
+            1,
+        )
+
+    @staticmethod
+    def _merge_consumption_history(
+        previous: dict[str, Any] | None,
+        incoming: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Merge the rolling API window into the permanent per-radiator history.
+
+        A null value from the API means that no measurement was received. It
+        must not erase an older valid value already archived for that date.
+        A real zero remains a real zero and is kept as such.
+        """
+        records: dict[str, dict[str, Any]] = {}
+        for day in (previous or {}).get("days") or []:
+            if isinstance(day, dict) and isinstance(day.get("date"), str):
+                records[day["date"]] = dict(day)
+
+        for day in incoming.get("days") or []:
+            if not isinstance(day, dict) or not isinstance(day.get("date"), str):
+                continue
+            date_key = day["date"]
+            old = records.get(date_key, {})
+            merged = {**old, **day}
+            for field in ("heatingSeconds", "estimatedKWh"):
+                if day.get(field) is None and old.get(field) is not None:
+                    merged[field] = old[field]
+            records[date_key] = merged
+
+        merged_data = {**(previous or {}), **incoming}
+        merged_data["days"] = [records[key] for key in sorted(records)]
+        return merged_data
+
+    def _import_consumption_statistics(
+        self,
+        device_id: str,
+        device_name: str,
+        days: list[dict[str, Any]],
+    ) -> None:
+        """Import daily energy and heating-duration points into Recorder statistics."""
+        energy_id = f"{DOMAIN}:{device_id}_estimated_consumption"
+        duration_id = f"{DOMAIN}:{device_id}_heating_duration"
+        energy_metadata = StatisticMetaData(
+            mean_type=StatisticMeanType.NONE,
+            has_sum=True,
+            name=(
+                f"Econergy {device_name} - "
+                "consommation estimée journalière"
+            ),
+            source=DOMAIN,
+            statistic_id=energy_id,
+            unit_class=EnergyConverter.UNIT_CLASS,
+            unit_of_measurement="kWh",
+        )
+        duration_metadata = StatisticMetaData(
+            mean_type=StatisticMeanType.NONE,
+            has_sum=True,
+            name=(
+                f"Econergy {device_name} - "
+                "durée de chauffe journalière"
+            ),
+            source=DOMAIN,
+            statistic_id=duration_id,
+            unit_class=None,
+            unit_of_measurement="h",
+        )
+
+        energy_points: list[StatisticData] = []
+        duration_points: list[StatisticData] = []
+        energy_sum = 0.0
+        duration_sum = 0.0
+        paris_tz = ZoneInfo("Europe/Paris")
+
+        for day in sorted(
+            days,
+            key=lambda item: str(item.get("date") or ""),
+        ):
+            date_text = day.get("date")
+            if not isinstance(date_text, str):
+                continue
+            try:
+                local_date = datetime.strptime(date_text, "%Y-%m-%d").date()
+                start = datetime.combine(local_date, time.min, tzinfo=paris_tz)
+            except ValueError:
+                _LOGGER.debug("Date de consommation Econergy ignorée : %s", date_text)
+                continue
+
+            raw_energy = day.get("estimatedKWh")
+            if raw_energy is not None:
+                try:
+                    energy = float(raw_energy)
+                    if energy >= 0:
+                        energy_sum += energy
+                        energy_points.append(
+                            StatisticData(start=start, state=energy, sum=energy_sum)
+                        )
+                except (TypeError, ValueError):
+                    _LOGGER.debug(
+                        "Consommation Econergy invalide pour %s (%s)",
+                        date_text,
+                        device_id,
+                    )
+
+            raw_duration = day.get("heatingSeconds")
+            if raw_duration is not None:
+                try:
+                    duration_hours = float(raw_duration) / 3600
+                    if duration_hours >= 0:
+                        duration_sum += duration_hours
+                        duration_points.append(
+                            StatisticData(
+                                start=start,
+                                state=duration_hours,
+                                sum=duration_sum,
+                            )
+                        )
+                except (TypeError, ValueError):
+                    _LOGGER.debug(
+                        "Durée de chauffe Econergy invalide pour %s (%s)",
+                        date_text,
+                        device_id,
+                    )
+
+        try:
+            if energy_points:
+                async_add_external_statistics(self.hass, energy_metadata, energy_points)
+            if duration_points:
+                async_add_external_statistics(self.hass, duration_metadata, duration_points)
+        except Exception:
+            # Consumption data and its local archive remain usable even if the
+            # Recorder statistics queue is temporarily unavailable.
+            _LOGGER.exception(
+                "Impossible d'importer les statistiques long terme Econergy pour %s",
+                device_id,
+            )
 
     def record_last_command(self, device_id: str, command: dict[str, Any]) -> None:
         """Update and persist the latest command summary for one radiator."""
@@ -461,7 +645,6 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # The consumption endpoint changes at most once per day. Read it after
         # the Europe/Paris date changes, in the background, without delaying
         # climate state updates.
-        from zoneinfo import ZoneInfo
         today = datetime.now(ZoneInfo("Europe/Paris")).date().isoformat()
         if self.consumption_loaded_date != today and (
             self._consumption_load_task is None or self._consumption_load_task.done()
@@ -481,6 +664,7 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "settings_errors": dict(self.settings_errors),
             "consumption": dict(self.consumption),
             "consumption_errors": dict(self.consumption_errors),
+            "consumption_loaded_date": self.consumption_loaded_date,
             "last_commands": dict(self.last_commands),
             "api_version": self.api.api_version,
             "expires_at": getattr(self, "token_expires_at", None),
@@ -537,20 +721,30 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             })
 
     async def async_load_consumption(self, *, force: bool = False) -> None:
-        """Load daily-cached 15-day consumption; Econergy says once per day is enough."""
-        from zoneinfo import ZoneInfo
+        """Load the rolling API window, merge it into the permanent archive and Recorder."""
         async with self._consumption_lock:
             today = datetime.now(ZoneInfo("Europe/Paris")).date().isoformat()
             if not force and self.consumption_loaded_date == today:
                 return
+
             devices = (self.data or {}).get("devices", [])
             for index, device in enumerate(devices):
                 device_id = str(device.get("id") or "")
                 if not device_id:
                     continue
                 try:
-                    self.consumption[device_id] = await self.api.get_consumption(device_id)
+                    incoming = await self.api.get_consumption(device_id)
+                    merged = self._merge_consumption_history(
+                        self.consumption.get(device_id),
+                        incoming,
+                    )
+                    self.consumption[device_id] = merged
                     self.consumption_errors.pop(device_id, None)
+                    self._import_consumption_statistics(
+                        device_id,
+                        str(device.get("name") or device_id),
+                        merged.get("days") or [],
+                    )
                 except EconergyAuthError:
                     raise
                 except EconergyApiError as err:
@@ -558,7 +752,13 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.warning("Consommation Econergy indisponible pour %s : %s", device_id, err)
                 if index < len(devices) - 1:
                     await asyncio.sleep(0.25)
+
+            # The endpoint is refreshed once per local day. Keep this
+            # cadence even when one device fails; errors remain visible and
+            # a manual refresh can retry that radiator without hammering the API.
             self.consumption_loaded_date = today
+
+            self._schedule_consumption_save()
             if self.data is not None:
                 self.async_set_updated_data({
                     **self.data,
@@ -568,13 +768,28 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 })
 
     async def async_refresh_consumption(self, device_id: str) -> dict[str, Any]:
-        """Refresh one device's daily report on demand."""
-        data = await self.api.get_consumption(device_id)
-        self.consumption[device_id] = data
-        self.consumption_errors.pop(device_id, None)
+        """Refresh one device's rolling report without discarding its older archive."""
+        incoming = await self.api.get_consumption(device_id)
+        merged = self._merge_consumption_history(
+            self.consumption.get(str(device_id)),
+            incoming,
+        )
+        self.consumption[str(device_id)] = merged
+        self.consumption_errors.pop(str(device_id), None)
+        device = self.find_device(str(device_id)) or {}
+        self._import_consumption_statistics(
+            str(device_id),
+            str(device.get("name") or device_id),
+            merged.get("days") or [],
+        )
+        self._schedule_consumption_save()
         if self.data is not None:
-            self.async_set_updated_data({**self.data, "consumption": dict(self.consumption), "consumption_errors": dict(self.consumption_errors)})
-        return data
+            self.async_set_updated_data({
+                **self.data,
+                "consumption": dict(self.consumption),
+                "consumption_errors": dict(self.consumption_errors),
+            })
+        return merged
 
     async def async_ensure_settings(
         self, device_id: str, *, refresh: bool = False

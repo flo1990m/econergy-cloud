@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.3 — bêta — 12 novembre 2026
+
+### Consommation et historique
+- Les capteurs de consommation estimée et de durée de chauffe exploitent désormais les relevés disponibles sans se limiter à la dernière journée de la fenêtre API.
+- Affiche 0 dans les tuiles lorsqu'une journée existe mais que l'API renvoie `null`, sans transformer cette absence de mesure en zéro dans les données archivées.
+- Fusionne chaque nouvelle fenêtre de 15 jours avec l'historique local permanent : les journées antérieures sont conservées et une valeur `null` ne peut pas effacer une mesure déjà connue.
+- Enregistre l'archive dans le stockage persistant Home Assistant et importe les valeurs quotidiennes disponibles dans les statistiques long terme du Recorder, pour l'énergie estimée et la durée de chauffe.
+
+### Compatibilité
+- Aucune modification de l'autorisation OAuth ni de la configuration des radiateurs.
+- Les identifiants uniques des entités existantes sont conservés.
+
 ## 2.1.2 — bêta — 12 novembre 2026
 
 ### Correctifs
