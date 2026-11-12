@@ -499,5 +499,9 @@ class EconergyLastCommandSensor(_EconergyDeviceEntity, SensorEntity):
             "type": command.get("kind"),
             "date": command.get("updated_at"),
             "statut_api": raw_status,
-            "statut_libelle": _COMMAND_STATUS_LABELS.get(raw_status, "En cours de traitement") if raw_status else None,
+            "statut_libelle": (
+                _COMMAND_STATUS_LABELS.get(raw_status, "En cours de traitement")
+                if raw_status
+                else None
+            ),
         }
