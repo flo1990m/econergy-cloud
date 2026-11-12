@@ -2,7 +2,7 @@ type: entities
 title: Radiateur Bureau — actions
 show_header_toggle: false
 entities:
-  - entity: button.econergy_bureau_programmes_du_radiateur
+  - entity: button.econergy_bureau_programmer_le_radiateur
     name: Programmes du radiateur
   - entity: button.econergy_bureau_actualiser_etat
     name: Actualiser l'état
