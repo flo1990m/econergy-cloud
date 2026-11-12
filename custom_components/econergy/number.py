@@ -142,7 +142,7 @@ class EconergyProgramNumber(_EconergyNumber):
 class EconergyMaximumSetpointNumber(_EconergyNumber):
     """Maximum allowed heating temperature, enforced by the radiator itself."""
 
-    _attr_name = "Butée de température maximale"
+    _attr_name = "Butée de température max"
     _attr_icon = "mdi:thermometer-chevron-up"
 
     def __init__(self, coordinator: EconergyCoordinator, device: dict[str, Any]) -> None:
