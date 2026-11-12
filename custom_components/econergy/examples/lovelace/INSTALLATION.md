@@ -15,8 +15,20 @@ Si "button_card_templates:" existe déjà, fusionner les deux modèles dans cett
 ------------------
 Ajouter le contenu de radiateur_bureau.yaml comme carte manuelle dans la vue souhaitée.
 
-Entités utilisées
------------------
+Autres exemples facultatifs
+---------------------------
+Le dossier contient aussi :
+- radiateur_bureau_etat.yaml
+- radiateur_bureau_consommation.yaml
+- radiateur_bureau_consommation_15_jours.yaml
+- radiateur_bureau_reglages.yaml
+- radiateur_bureau_diagnostic.yaml
+- radiateur_bureau_actions.yaml
+
+Ces cartes natives n'ont pas besoin de Button Card. La carte 15 jours nécessite ApexCharts Card. La carte 30 jours utilise les statistiques long terme Recorder Econergy (identifiants `econergy:<device_id>_...`) et non l'historique d'état de l'entité.
+
+Entités utilisées par la tuile de base
+--------------------------------------
 - climate.econergy_bureau
 - binary_sensor.econergy_bureau_chauffage_en_cours
 
@@ -32,7 +44,7 @@ Fonctionnement
 
 Pour les autres radiateurs
 --------------------------
-Dupliquer radiateur_bureau.yaml, puis remplacer les deux identifiants d'entité par ceux du radiateur visé. Les modèles button-card sont communs aux quatre tuiles.
+Dupliquer les fichiers souhaités et remplacer les entités du Bureau par celles du radiateur visé. Pour le graphique Recorder 30 jours, remplacer également le device ID dans les identifiants de statistiques. Les modèles button-card restent communs à la tuile de base.
 
 Important
 ---------
