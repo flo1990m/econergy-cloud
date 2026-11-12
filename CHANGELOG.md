@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.4 — bêta — 12 novembre 2026
+
+- Ajoute des exemples Lovelace de tuiles Econergy et des modèles réutilisables pour piloter les radiateurs avec l'état de chauffe réel.
+- Aucun changement de l'API, des commandes, de l'autorisation OAuth ou des identifiants uniques.
+
 ## 2.1.1 — 11 novembre 2026
 
 ### Correctifs

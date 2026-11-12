@@ -1,0 +1,89 @@
+# À ajouter une seule fois à la racine de la configuration brute du tableau de bord,
+# au même niveau que "views:". Ces modèles sont ensuite réutilisés par les tuiles Econergy.
+button_card_templates:
+  econergy_mode_button:
+    show_icon: true
+    show_name: true
+    show_state: false
+    tap_action:
+      action: perform-action
+      perform_action: climate.set_preset_mode
+      target:
+        entity_id: '[[[ return variables.climate_entity; ]]]'
+      data:
+        preset_mode: '[[[ return variables.preset; ]]]'
+    hold_action:
+      action: none
+    double_tap_action:
+      action: none
+    styles:
+      card:
+        - height: 38px
+        - padding: 0 4px
+        - border: none
+        - box-shadow: none
+        - border-radius: 10px
+        - background: |
+            [[[
+              const selected = entity.attributes.preset_mode === variables.preset;
+              return selected
+                ? 'rgba(255,125,45,0.22)'
+                : 'rgba(140,140,140,0.09)';
+            ]]]
+      grid:
+        - grid-template-areas: '"i n"'
+        - grid-template-columns: 18px auto
+        - justify-content: center
+        - align-items: center
+        - column-gap: 4px
+      icon:
+        - width: 16px
+        - color: |
+            [[[
+              const selected = entity.state === 'heat' &&
+                entity.attributes.preset_mode === variables.preset;
+              return selected ? '#ff792e' : 'var(--secondary-text-color)';
+            ]]]
+      name:
+        - font-size: 12px
+        - white-space: nowrap
+
+  econergy_temperature_step:
+    show_name: false
+    show_state: false
+    tap_action:
+      action: perform-action
+      perform_action: climate.set_temperature
+      target:
+        entity_id: '[[[ return variables.climate_entity; ]]]'
+      data:
+        temperature: |
+          [[[
+            const a = entity.attributes || {};
+            const minRaw = a.min_temp;
+            const maxRaw = a.max_temp;
+            const minimum = minRaw !== null && minRaw !== undefined && Number.isFinite(Number(minRaw)) ? Number(minRaw) : 13.5;
+            const maximum = maxRaw !== null && maxRaw !== undefined && Number.isFinite(Number(maxRaw)) ? Number(maxRaw) : 30;
+            const manual = Number(a.econergy_manual_setpoint_c);
+            const current = Number(a.temperature);
+            const validManual = Number.isFinite(manual) && manual >= minimum && manual <= maximum;
+            const validCurrent = Number.isFinite(current) && current >= minimum && current <= maximum;
+            const base = validManual ? manual : validCurrent ? current : 19;
+            const step = Number(variables.direction || 0) * 0.5;
+            const target = Math.round((base + step) * 2) / 2;
+            return Math.max(minimum, Math.min(maximum, target));
+          ]]]
+    hold_action:
+      action: none
+    double_tap_action:
+      action: none
+    styles:
+      card:
+        - background: transparent
+        - border: none
+        - box-shadow: none
+        - height: 34px
+        - padding: 0
+      icon:
+        - width: 20px
+        - color: '#5082ad'

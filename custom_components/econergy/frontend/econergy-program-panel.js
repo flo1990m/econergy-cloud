@@ -1,5 +1,5 @@
 /* Radiator-specific weekly programming and 15-day consumption overview. */
-const CARD_MODULE = "/econergy/econergy-weekly-program-card.js?v=2.1.3";
+const CARD_MODULE = "/econergy/econergy-weekly-program-card.js?v=2.1.4";
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",

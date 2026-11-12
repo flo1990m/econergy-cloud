@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.4 — bêta — 12 novembre 2026
+
+### Tuiles Lovelace
+- Ajoute à l'archive de l'intégration des exemples de tuiles Lovelace Econergy, avec les modèles `button_card_templates` réutilisables et une tuile complète pour le Bureau.
+- Distingue visuellement les états arrêté, actif sans chauffe et chauffe effective à partir du capteur de fonctionnement publié par l'intégration.
+- Conserve un affichage cohérent du mode Hors gel, même lorsque le climate expose `hvac_mode: off`.
+- Lit la température ambiante directement depuis l'entité `climate` et adapte les boutons de consigne aux limites réelles `min_temp` et `max_temp`.
+- Documente l'installation et la duplication de la tuile pour les autres radiateurs.
+
+### Compatibilité
+- Aucun changement des commandes API, de l'autorisation OAuth ou des identifiants uniques des entités.
+- Les exemples Lovelace nécessitent la carte personnalisée `custom:button-card` et sont ajoutés manuellement au tableau de bord.
+
 ## 2.1.3 — bêta — 12 novembre 2026
 
 ### Tuile Lovelace

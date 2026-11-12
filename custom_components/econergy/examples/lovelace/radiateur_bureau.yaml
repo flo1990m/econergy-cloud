@@ -1,0 +1,272 @@
+# Tuile Econergy Bureau — nouvelle structure simplifiée
+# Nécessite les modèles econergy_mode_button et econergy_temperature_step
+# déclarés une seule fois dans button_card_templates (voir le fichier compagnon).
+
+type: custom:button-card
+entity: climate.econergy_bureau
+triggers_update:
+  - climate.econergy_bureau
+  - binary_sensor.econergy_bureau_chauffage_en_cours
+show_icon: false
+show_name: false
+show_state: false
+tap_action:
+  action: none
+hold_action:
+  action: none
+double_tap_action:
+  action: none
+styles:
+  card:
+    - border: none
+    - border-radius: 14px
+    - box-shadow: none
+    - padding: 10px 12px
+    - overflow: visible
+  grid:
+    - grid-template-areas: '"radiateur informations consigne" "modes modes modes"'
+    - grid-template-columns: 44px minmax(0, 1fr) auto
+    - grid-template-rows: auto auto
+    - column-gap: 10px
+    - row-gap: 10px
+    - align-items: center
+  custom_fields:
+    radiateur:
+      - align-self: center
+    informations:
+      - justify-self: start
+      - text-align: left
+      - min-width: 0
+    consigne:
+      - justify-self: end
+      - align-self: center
+    modes:
+      - justify-self: stretch
+      - min-width: 0
+
+custom_fields:
+  radiateur:
+    card:
+      type: custom:button-card
+      entity: climate.econergy_bureau
+      triggers_update:
+        - climate.econergy_bureau
+        - binary_sensor.econergy_bureau_chauffage_en_cours
+      icon: |
+        [[[
+          const actif = entity.state === 'heat' || entity.attributes.preset_mode === 'Hors gel';
+          const chauffe = states['binary_sensor.econergy_bureau_chauffage_en_cours']?.state === 'on';
+          if (!actif) return 'mdi:radiator-disabled';
+          return chauffe ? 'mdi:radiator' : 'mdi:radiator-disabled';
+        ]]]
+      show_name: false
+      show_state: false
+      tap_action:
+        action: perform-action
+        perform_action: climate.set_hvac_mode
+        target:
+          entity_id: climate.econergy_bureau
+        data:
+          hvac_mode: |
+            [[[
+              return (entity.state === 'heat' || entity.attributes.preset_mode === 'Hors gel') ? 'off' : 'heat';
+            ]]]
+      hold_action:
+        action: none
+      double_tap_action:
+        action: none
+      styles:
+        card:
+          - width: 42px
+          - height: 42px
+          - border: none
+          - box-shadow: none
+          - border-radius: 50%
+          - padding: 0
+          - background: |
+              [[[
+                return (entity.state === 'heat' || entity.attributes.preset_mode === 'Hors gel')
+                  ? 'rgba(255,125,45,0.18)'
+                  : 'rgba(140,140,140,0.12)';
+              ]]]
+        icon:
+          - width: 24px
+          - color: |
+              [[[
+                return (entity.state === 'heat' || entity.attributes.preset_mode === 'Hors gel')
+                  ? '#ff792e'
+                  : 'var(--secondary-text-color)';
+              ]]]
+
+  informations:
+    card:
+      type: custom:button-card
+      entity: climate.econergy_bureau
+      name: Radiateur Bureau
+      show_icon: false
+      show_name: true
+      show_state: false
+      tap_action:
+        action: more-info
+      hold_action:
+        action: none
+      double_tap_action:
+        action: none
+      styles:
+        card:
+          - width: 100%
+          - background: transparent
+          - border: none
+          - box-shadow: none
+          - border-radius: 0
+          - padding: 0
+        grid:
+          - grid-template-areas: '"n" "temp"'
+          - grid-template-columns: minmax(0, 1fr)
+          - grid-template-rows: min-content min-content
+          - row-gap: 3px
+          - align-items: center
+          - justify-items: start
+        name:
+          - font-size: 15px
+          - font-weight: 600
+          - justify-self: start
+          - white-space: nowrap
+        custom_fields:
+          temp:
+            - justify-self: start
+            - text-align: left
+      custom_fields:
+        temp: |
+          [[[
+            const raw = entity.attributes.current_temperature;
+            const temperature = Number(raw);
+            const ambiante = raw !== null && raw !== undefined &&
+              raw !== 'unknown' && raw !== 'unavailable' && Number.isFinite(temperature)
+                ? temperature.toFixed(1).replace('.', ',') + ' °C'
+                : 'Indispo';
+
+            return `
+              <div style="font-size:12px;color:var(--secondary-text-color);display:flex;align-items:center;gap:4px;white-space:nowrap">
+                <ha-icon icon="mdi:thermometer" style="--mdc-icon-size:15px;width:15px;height:15px;"></ha-icon>
+                <span>Ambiante : ${ambiante}</span>
+              </div>
+            `;
+          ]]]
+
+  consigne:
+    card:
+      type: custom:button-card
+      entity: climate.econergy_bureau
+      show_icon: false
+      show_name: false
+      show_state: false
+      tap_action:
+        action: none
+      hold_action:
+        action: none
+      double_tap_action:
+        action: none
+      styles:
+        card:
+          - background: rgba(140,140,140,0.09)
+          - border: none
+          - box-shadow: none
+          - border-radius: 12px
+          - padding: 4px
+        grid:
+          - grid-template-areas: '"moins valeur plus"'
+          - grid-template-columns: 28px 52px 28px
+          - grid-template-rows: 34px
+        custom_fields:
+          moins:
+            - align-self: center
+          valeur:
+            - align-self: center
+            - justify-self: center
+          plus:
+            - align-self: center
+      custom_fields:
+        moins:
+          card:
+            type: custom:button-card
+            template: econergy_temperature_step
+            entity: climate.econergy_bureau
+            icon: mdi:minus
+            variables:
+              climate_entity: climate.econergy_bureau
+              direction: -1
+        valeur: |
+          [[[
+            const raw = entity.attributes.temperature;
+            const temperature = Number(raw);
+            const consigne = raw !== null && raw !== undefined &&
+              raw !== 'unknown' && raw !== 'unavailable' && Number.isFinite(temperature)
+                ? temperature.toFixed(1).replace('.', ',') + '°'
+                : '—';
+            return `<span style="font-size:16px;font-weight:600;white-space:nowrap">${consigne}</span>`;
+          ]]]
+        plus:
+          card:
+            type: custom:button-card
+            template: econergy_temperature_step
+            entity: climate.econergy_bureau
+            icon: mdi:plus
+            variables:
+              climate_entity: climate.econergy_bureau
+              direction: 1
+
+  modes:
+    card:
+      type: custom:button-card
+      entity: climate.econergy_bureau
+      show_icon: false
+      show_name: false
+      show_state: false
+      tap_action:
+        action: none
+      hold_action:
+        action: none
+      double_tap_action:
+        action: none
+      styles:
+        card:
+          - border: none
+          - box-shadow: none
+          - background: transparent
+          - padding: 0
+        grid:
+          - grid-template-areas: '"gel manuel programmation"'
+          - grid-template-columns: repeat(3, minmax(0, 1fr))
+          - gap: 8px
+      custom_fields:
+        gel:
+          card:
+            type: custom:button-card
+            template: econergy_mode_button
+            entity: climate.econergy_bureau
+            name: Hors gel
+            icon: mdi:snowflake
+            variables:
+              climate_entity: climate.econergy_bureau
+              preset: Hors gel
+        manuel:
+          card:
+            type: custom:button-card
+            template: econergy_mode_button
+            entity: climate.econergy_bureau
+            name: Manuel
+            icon: mdi:fire
+            variables:
+              climate_entity: climate.econergy_bureau
+              preset: Manuel
+        programmation:
+          card:
+            type: custom:button-card
+            template: econergy_mode_button
+            entity: climate.econergy_bureau
+            name: Programme
+            icon: mdi:calendar-clock
+            variables:
+              climate_entity: climate.econergy_bureau
+              preset: Programmation

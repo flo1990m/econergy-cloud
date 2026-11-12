@@ -1,7 +1,7 @@
 # Econergy Cloud — Home Assistant
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://www.hacs.xyz/)
-[![Version bêta](https://img.shields.io/badge/version-2.1.3--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
+[![Version bêta](https://img.shields.io/badge/version-2.1.4--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
 
 Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera, basée sur l'API officielle Econergy Lab.
 
@@ -19,6 +19,7 @@ Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera
 - Suivi des commandes avec attente de leur confirmation par l'API ; le dernier statut est conservé après un redémarrage de Home Assistant et aucune commande incertaine n'est renvoyée automatiquement.
 - Régime appliqué déterminé à partir de l'état du radiateur et, en mode Programmation, de la consigne et du créneau hebdomadaire en cours.
 - Authentification OAuth 2.0 avec PKCE ; aucun mot de passe Econergy ni jeton à copier dans YAML.
+- Exemples de tuiles Lovelace pour piloter les radiateurs, avec modèles `button-card` réutilisables et indicateur de chauffe réel.
 
 ## Installation avec HACS / Marketplace
 
