@@ -1,7 +1,7 @@
 # Econergy Cloud — Home Assistant
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://www.hacs.xyz/)
-[![Version bêta](https://img.shields.io/badge/version-2.1.5--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
+[![Version bêta](https://img.shields.io/badge/version-2.1.6--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
 
 Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera, basée sur l'API officielle Econergy Lab.
 
@@ -11,10 +11,10 @@ Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera
 
 - Découverte des domiciles autorisés par le compte Econergy et des radiateurs associés.
 - Entité `climate` : arrêt, hors-gel, manuel et programmation ; température ambiante et consigne.
-- Programmation hebdomadaire avec un éditeur en français : sept jours, jusqu'à trois plages Confort par jour, consignes Éco/Confort, copie des réglages entre jours et activation explicite du mode Programmation.
+- Programmation hebdomadaire avec un éditeur en français : sept jours, jusqu'à trois plages Confort par jour, consignes Éco/Confort et copie des réglages entre jours. L'activation du mode Programmation reste gérée depuis le pilotage du radiateur.
 - Réglages : butée de température max, protection enfant et verrouillage du clavier.
 - Capteurs : température ambiante, puissance nominale, firmware, date d'installation, dernière communication, dernière remontée d'état, régime appliqué, état de chauffe, détection de fenêtre ouverte et consommation estimée.
-- Actions : actualisation à la demande, actualisation de la consommation, renommage du radiateur et récupération de la notice lorsqu'elle existe.
+- Actions : actualisation combinée de l'état et de la consommation, renommage du radiateur et récupération de la notice PDF via l'API Econergy.
 - Archivage durable des relevés journaliers de consommation estimée et de durée de chauffe, avec import dans les statistiques long terme de Home Assistant.
 - Suivi des commandes avec attente de leur confirmation par l'API ; le dernier statut est conservé après un redémarrage de Home Assistant et aucune commande incertaine n'est renvoyée automatiquement.
 - Régime appliqué déterminé à partir de l'état du radiateur et, en mode Programmation, de la consigne et du créneau hebdomadaire en cours.
@@ -55,21 +55,21 @@ Le dossier `custom_components/econergy/examples/lovelace` contient plusieurs car
 - `radiateur_bureau.yaml` : tuile de pilotage compacte avec l'indicateur de chauffe réel (modèle de base, nécessite `custom:button-card`).
 - `radiateur_bureau_etat.yaml` : état, température, régime, chauffe, fenêtre et ventilateur.
 - `radiateur_bureau_consommation.yaml` : graphiques Recorder sur 30 jours à partir des statistiques long terme Econergy.
-- `radiateur_bureau_consommation_15_jours.yaml` : graphique API des 15 derniers jours, avec les dates au format JJ/MM (nécessite `custom:apexcharts-card`).
+- `radiateur_bureau_consommation_15_jours.yaml` : graphiques journaliers Recorder des 15 derniers jours, pour l'énergie et la durée de chauffe.
 - `radiateur_bureau_reglages.yaml` : consignes Éco/Confort, butée max, protection enfant et verrouillage du clavier.
 - `radiateur_bureau_diagnostic.yaml` : firmware, puissance, dernière communication et statut de commande.
 - `radiateur_bureau_actions.yaml` : actualisation, programmation et notice.
 
 Les exemples sont fournis pour `climate.econergy_bureau`. Les identifiants des radiateurs et certains `entity_id` peuvent différer selon le nom et l'historique de ton installation : vérifie-les dans **Paramètres → Appareils et services → Econergy → Bureau** avant de coller une carte.
 
-**Historique de consommation :** les relevés du cloud sont importés comme statistiques long terme externes, avec des identifiants de la forme `econergy:<identifiant_du_radiateur>_estimated_consumption` et `econergy:<identifiant_du_radiateur>_heating_duration`. La carte `statistics-graph` doit utiliser ces identifiants de statistiques, pas les entités `sensor.*` qui n'exposent que la dernière journée. L'onglet Historique natif d'une entité Home Assistant montre les changements d'état de cette entité ; il ne présente pas les statistiques externes. Après la mise à jour, appuie une fois sur **Actualiser la consommation** sur le radiateur pour relancer l'import des jours archivés dans Recorder. Le graphique 30 jours affiche alors les jours disponibles (jusqu'aux 15 derniers jours fournis par l'API au premier import), puis s'enrichit au fil de l'archivage.
+**Historique de consommation :** les relevés du cloud sont importés comme statistiques long terme externes, avec des identifiants de la forme `econergy:<identifiant_du_radiateur>_estimated_consumption` et `econergy:<identifiant_du_radiateur>_heating_duration`. La carte `statistics-graph` doit utiliser ces identifiants de statistiques, pas les entités `sensor.*` qui n'exposent que la dernière journée. L'onglet Historique natif d'une entité Home Assistant montre les changements d'état de cette entité ; il ne présente pas les statistiques externes. Après la mise à jour, appuie une fois sur **Actualiser les infos** sur le radiateur pour actualiser l'état, relire la consommation et relancer l'import des jours archivés dans Recorder. Le graphique 30 jours affiche alors les jours disponibles (jusqu'aux 15 derniers jours fournis par l'API au premier import), puis s'enrichit au fil de l'archivage.
 
 ## Données et limites connues
 
 - L'API expose actuellement le mode `FROST` avec une consigne renvoyée de **7,5 °C**, alors que l'application Econergy affiche **7 °C**. La valeur de l'API est conservée telle quelle afin de ne pas masquer cet écart ; ce point doit être clarifié avec Econergy.
 - La détection de fenêtre ouverte est exposée en lecture seule dans les routes actuellement documentées. Aucune commande documentée d'activation/désactivation n'est disponible à ce jour.
-- Le téléchargement de la notice dépend de la présence d'un document côté Econergy. En cas de réponse `MANUAL_NOT_FOUND`, une notification informative est affichée plutôt qu'une erreur d'action.
-- L'API Econergy ne retourne que les 15 dernières journées complètes, mais l'intégration les archive durablement dans Home Assistant et alimente ses statistiques long terme. Les valeurs restent des estimations calculées à partir de la durée de chauffe et de la puissance nominale ; ce ne sont pas des relevés Linky ni des mesures électriques directes. Lorsqu'une journée est renvoyée sans mesure (`null`), la tuile affiche `0` par convention, tandis que l'archive conserve l'absence de donnée.
+- La notice est demandée à l'API via `GET /devices/{deviceId}/manual?lang=fr`. L'intégration ouvre le lien HTTPS retourné. Si l'API ne fournit pas le lien PDF attendu (erreur API ou réponse sans URL), l'erreur est remontée sans supposer que le document est absent.
+- L'endpoint de consommation utilisé par l'intégration retourne les 15 dernières journées complètes, mais l'intégration les archive durablement dans Home Assistant et alimente ses statistiques long terme. Les valeurs restent des estimations calculées à partir de la durée de chauffe et de la puissance nominale ; ce ne sont pas des relevés Linky ni des mesures électriques directes. Lorsqu'une journée est renvoyée sans mesure (`null`), la tuile affiche `0` par convention, tandis que l'archive conserve l'absence de donnée.
 - La température et les états sont les dernières valeurs publiées par les radiateurs. Une lecture API n'implique pas nécessairement une nouvelle remontée physique.
 - Les scénarios, configurations avancées, gestion des membres et les commandes de présence/absence ne sont pas exposés par les routes publiques actuellement utilisées/documentées par cette version ; ils ne sont pas simulés par l'intégration.
 
@@ -83,7 +83,7 @@ Routes utilisées par cette version :
 - `GET /devices/{deviceId}/status`, `PATCH /devices/{deviceId}`
 - `GET /devices/{deviceId}/settings`, `PATCH /devices/{deviceId}/settings`
 - `GET /devices/{deviceId}/program`, `PATCH /devices/{deviceId}/program`
-- `GET /devices/{deviceId}/consumption`, `GET /devices/{deviceId}/manual`
+- `GET /devices/{deviceId}/consumption`, `GET /devices/{deviceId}/manual?lang=fr`
 - `POST /devices/{deviceId}/status-request`
 - `POST /devices/{deviceId}/commands`, `GET /commands/{commandId}`
 

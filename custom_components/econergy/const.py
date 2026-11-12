@@ -1,7 +1,7 @@
 """Constants for Econergy Cloud."""
 
 DOMAIN = "econergy"
-NAME = "Econergy Cloud 2.1.4 (Bêta)"
+NAME = "Econergy Cloud 2.1.6 (Bêta)"
 BASE_URL = "https://econergy-app.fr/api/smarthome/v1"
 
 # Econergy Lab public OAuth application. Public clients do not use a secret.

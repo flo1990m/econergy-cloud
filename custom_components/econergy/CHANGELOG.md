@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.6 — bêta — 12 novembre 2026
+
+- Fusionne les demandes d'actualisation de l'état et de la consommation dans l'action « Actualiser les infos », en conservant l'identifiant unique de l'ancien bouton d'état.
+- Remplace le graphique 15 jours basé sur ApexCharts par des graphiques natifs journaliers Recorder pour l'énergie estimée et la durée de chauffe.
+- Simplifie la page « Programmes du radiateur » : retrait de l'activation depuis cette page et passage au vouvoiement dans l'éditeur.
+- Harmonise le texte d'information sur les créneaux et le mode Programmation.
+- Conserve la route officielle de récupération de notice et remonte les erreurs API sans affirmer à tort que le PDF est absent.
+
 ## 2.1.5 — bêta — 12 novembre 2026
 
 ### Thermostat et libellés
