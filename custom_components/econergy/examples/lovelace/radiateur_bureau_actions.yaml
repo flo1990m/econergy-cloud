@@ -1,0 +1,12 @@
+type: entities
+title: Radiateur Bureau — actions
+show_header_toggle: false
+entities:
+  - entity: button.econergy_bureau_programmes_du_radiateur
+    name: Programmes du radiateur
+  - entity: button.econergy_bureau_actualiser_etat
+    name: Actualiser l'état
+  - entity: button.econergy_bureau_actualiser_consommation
+    name: Actualiser la consommation
+  - entity: button.econergy_bureau_telecharger_la_notice
+    name: Télécharger la notice
