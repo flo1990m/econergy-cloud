@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -63,6 +64,7 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_write_locks: dict[str, asyncio.Lock] = {}
         self._initial_devices: list[dict[str, Any]] | None = None
         self._startup_task: asyncio.Task | None = None
+        self._startup_unsubscribe: Callable[[], None] | None = None
         super().__init__(
             hass,
             _LOGGER,
@@ -132,13 +134,15 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.hass.state == CoreState.running:
             self._start_deferred_initialization()
         else:
-            unsubscribe = self.hass.bus.async_listen_once(
+            self._startup_unsubscribe = self.hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED,
                 self._handle_homeassistant_started,
             )
-            entry.async_on_unload(unsubscribe)
 
     async def _handle_homeassistant_started(self, _event: Any) -> None:
+        # async_listen_once removes its listener before invoking this callback.
+        # Clear the handle so unload cleanup does not attempt a second removal.
+        self._startup_unsubscribe = None
         self._start_deferred_initialization()
 
     def _start_deferred_initialization(self) -> None:
@@ -167,7 +171,12 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.exception("Échec de l'initialisation différée Econergy")
 
     def async_stop_deferred_initialization(self) -> None:
-        """Cancel the startup-only task when the config entry is unloaded."""
+        """Unsubscribe from startup and cancel the startup task on unload."""
+        unsubscribe = self._startup_unsubscribe
+        self._startup_unsubscribe = None
+        if unsubscribe is not None:
+            unsubscribe()
+
         task = self._startup_task
         if task is not None and not task.done():
             task.cancel()
