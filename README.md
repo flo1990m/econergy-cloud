@@ -64,6 +64,29 @@ Les exemples sont fournis pour `climate.econergy_bureau`. Les identifiants des r
 
 **Historique de consommation :** les relevés du cloud sont importés comme statistiques long terme externes, avec des identifiants de la forme `econergy:<identifiant_du_radiateur>_estimated_consumption` et `econergy:<identifiant_du_radiateur>_heating_duration`. La carte `statistics-graph` doit utiliser ces identifiants de statistiques, pas les entités `sensor.*` qui n'exposent que la dernière journée. L'onglet Historique natif d'une entité Home Assistant montre les changements d'état de cette entité ; il ne présente pas les statistiques externes. Après la mise à jour, appuie une fois sur **Actualiser les infos** sur le radiateur pour actualiser l'état, relire la consommation et relancer l'import des jours archivés dans Recorder. Le graphique 30 jours affiche alors les jours disponibles (jusqu'aux 15 derniers jours fournis par l'API au premier import), puis s'enrichit au fil de l'archivage.
 
+## Graphiques de consommation dans Lovelace
+
+Les entités `Consommation estimée (dernier jour)` et `Durée de chauffe (dernier jour)` exposent seulement le dernier relevé quotidien reçu de l'API. Leur valeur change lors d'une nouvelle actualisation. Elles ne représentent pas l'historique des journées précédentes.
+
+Pour cette raison, les graphiques automatiquement suggérés par Home Assistant à partir de ces entités ne doivent pas être utilisés comme graphiques de consommation journalière historique. Ils affichent les statistiques calculées à partir de la valeur courante de ces capteurs ; si le dernier relevé vaut 0, leurs graphiques peuvent rester à 0 jusqu'au prochain relevé.
+
+Pour représenter chaque journée, utilisez une carte manuelle **Graphique des statistiques** avec l'identifiant externe Recorder Econergy, par exemple :
+
+```yaml
+type: statistics-graph
+title: Consommation estimée — 30 derniers jours
+entities:
+  - econergy:68c5597e5cb480c6cc800d66_estimated_consumption
+period: day
+days_to_show: 30
+chart_type: bar
+stat_types:
+  - state
+hide_legend: true
+```
+
+Pour la durée de chauffe, utilisez `econergy:68c5597e5cb480c6cc800d66_heating_duration`. Remplacez `68c5597e5cb480c6cc800d66` par l'identifiant du radiateur concerné. Les identifiants externes commencent par `econergy:` ; ils ne sont pas les `entity_id` des capteurs. Vous pouvez les retrouver dans **Paramètres → Outils de développement → Statistiques**.
+
 ## Données et limites connues
 
 - L'API expose actuellement le mode `FROST` avec une consigne renvoyée de **7,5 °C**, alors que l'application Econergy affiche **7 °C**. La valeur de l'API est conservée telle quelle afin de ne pas masquer cet écart ; ce point doit être clarifié avec Econergy.
