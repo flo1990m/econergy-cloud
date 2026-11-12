@@ -2,6 +2,13 @@
 
 ## 2.1.3 — bêta — 12 novembre 2026
 
+### Tuile Lovelace
+- Modernise l'exemple de tuile de pilotage des radiateurs en conservant son apparence et ses commandes, avec une structure factorisée et réutilisable via `button_card_templates`.
+- Exploite les états Econergy pour distinguer visuellement le radiateur arrêté, allumé sans chauffe et en chauffe effective.
+- Utilise directement la température ambiante publiée par l'entité `climate` et adapte les boutons de consigne aux limites `min_temp` et `max_temp` exposées par le radiateur.
+- Préserve la dernière consigne manuelle lors des transitions entre les modes arrêt, hors-gel et chauffage.
+
+
 ### Consommation et historique
 - Les capteurs de consommation estimée et de durée de chauffe exploitent désormais les relevés disponibles sans se limiter à la dernière journée de la fenêtre API.
 - Affiche 0 dans les tuiles lorsqu'une journée existe mais que l'API renvoie `null`, sans transformer cette absence de mesure en zéro dans les données archivées.
