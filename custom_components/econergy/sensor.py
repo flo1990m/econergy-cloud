@@ -416,7 +416,7 @@ class EconergyConsumptionSensor(_EconergyDeviceEntity, SensorEntity):
 
     @property
     def available(self) -> bool:
-        return super().available and self._latest_day is not None
+        return self._latest_day is not None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
