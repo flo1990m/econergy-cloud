@@ -446,6 +446,10 @@ class EconergyConsumptionSensor(_EconergyDeviceEntity, SensorEntity):
 
 _COMMAND_STATUS_LABELS = {
     "SENDING": "Envoi en cours",
+    "QUEUED": "En attente",
+    "PENDING": "En attente",
+    "PROCESSING": "En cours de traitement",
+    "IN_PROGRESS": "En cours de traitement",
     "SENT": "Envoyée",
     "ACKNOWLEDGED": "Reçue par le radiateur",
     "ACK": "Reçue par le radiateur",
@@ -468,6 +472,7 @@ _COMMAND_STATUS_LABELS = {
     "CANCELED": "Annulée",
     "EXPIRED": "Expirée",
     "TIMEOUT": "Délai dépassé",
+    "UNKNOWN": "Statut inconnu",
 }
 
 
