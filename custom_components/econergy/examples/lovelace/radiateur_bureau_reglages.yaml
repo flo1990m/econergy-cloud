@@ -6,7 +6,7 @@ entities:
     name: Consigne Éco
   - entity: number.econergy_bureau_consigne_confort
     name: Consigne Confort
-  - entity: number.econergy_bureau_butee_de_temperature_max
+  - entity: number.econergy_bureau_butee_de_temperature_maximale
     name: Butée de température max
   - entity: switch.econergy_bureau_protection_enfant
     name: Protection enfant
