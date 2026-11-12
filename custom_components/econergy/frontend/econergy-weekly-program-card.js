@@ -89,7 +89,7 @@ class EconergyWeeklyProgramCard extends HTMLElement {
 
   setConfig(config) {
     if (!config || !config.entity) {
-      throw new Error("Choisis le capteur Econergy « Programme hebdomadaire ».");
+      throw new Error("Choisissez le capteur Econergy « Programme hebdomadaire ».");
     }
     this._config = { ...config };
     this._render();
@@ -220,7 +220,7 @@ class EconergyWeeklyProgramCard extends HTMLElement {
       const start = toMinutes(slot.start);
       const end = toMinutes(slot.end);
       if (start === null || end === null) {
-        return `Créneau ${index + 1} : renseigne une heure de début et de fin, par pas de 10 minutes.`;
+        return `Créneau ${index + 1} : renseignez une heure de début et de fin, par pas de 10 minutes.`;
       }
       if (end <= start) {
         return `Créneau ${index + 1} : l'heure de fin doit être après l'heure de début.`;
@@ -404,7 +404,7 @@ class EconergyWeeklyProgramCard extends HTMLElement {
 
     if (!sensor || !deviceId || !attrs.days_api) {
       this.shadowRoot.innerHTML = `
-        <ha-card><div class="content error">Ce capteur n'est pas un capteur de programme Econergy. Sélectionne l'entité « Programme hebdomadaire » du radiateur.</div></ha-card>
+        <ha-card><div class="content error">Ce capteur n'est pas un capteur de programme Econergy. Sélectionnez l'entité « Programme hebdomadaire » du radiateur.</div></ha-card>
         ${this._styles()}`;
       this._rendering = false;
       return;
@@ -472,7 +472,7 @@ class EconergyWeeklyProgramCard extends HTMLElement {
             </button>
           </div>
           ${message}
-          <div class="footnote"><ha-icon icon="mdi:information-outline"></ha-icon><span>3 créneaux maximum · pas de 10 minutes · pas de chevauchement. La relecture confirme l'enregistrement dans l'API ; le radiateur doit être en mode Programmation (PROG) pour suivre les horaires.</span></div>
+          <div class="footnote"><ha-icon icon="mdi:information-outline"></ha-icon><span>3 créneaux maximum · pas de 10 minutes · pas de chevauchement. Le radiateur doit être en mode Programmation pour suivre les horaires.</span></div>
         </div>
       </ha-card>
       ${this._styles()}

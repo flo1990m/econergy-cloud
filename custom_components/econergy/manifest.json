@@ -14,6 +14,6 @@
   "iot_class": "cloud_polling",
   "name": "Econergy Cloud",
   "requirements": [],
-  "version": "2.1.5",
+  "version": "2.1.6",
   "issue_tracker": "https://github.com/flo1990m/econergy-cloud/issues"
 }

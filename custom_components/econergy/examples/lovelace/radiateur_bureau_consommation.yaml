@@ -28,5 +28,5 @@ cards:
         name: Consommation estimée
       - entity: sensor.econergy_bureau_duree_de_chauffe_dernier_jour
         name: Durée de chauffe
-      - entity: button.econergy_bureau_actualiser_la_consommation
-        name: Actualiser la consommation
+      - entity: button.econergy_bureau_actualiser_l_etat
+        name: Actualiser les infos
