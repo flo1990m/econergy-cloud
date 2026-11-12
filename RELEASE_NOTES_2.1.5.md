@@ -5,7 +5,7 @@
 
 ### Tuiles Lovelace facultatives
 - Ajout de cartes indépendantes pour l'état, les consommations, les réglages, le diagnostic et les actions.
-- Ajout d'un graphique Recorder sur 30 jours utilisant les identifiants de statistiques long terme propres à chaque radiateur.
+- Ajout d'un graphique Recorder sur 30 jours utilisant les identifiants de statistiques long terme propres à chaque radiateur. Le bouton « Actualiser la consommation » relance l'import de l'archive locale dans Recorder.
 - Ajout d'un graphique API sur les 15 derniers jours avec les dates au format JJ/MM.
 - La tuile de pilotage de base reste compacte et conserve l'indicateur visuel de chauffe.
 
