@@ -12,7 +12,7 @@ Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera
 - Découverte des domiciles autorisés par le compte Econergy et des radiateurs associés.
 - Entité `climate` : arrêt, hors-gel, manuel et programmation ; température ambiante et consigne.
 - Programmation hebdomadaire avec un éditeur en français : sept jours, jusqu'à trois plages Confort par jour, consignes Éco/Confort, copie des réglages entre jours et activation explicite du mode Programmation.
-- Réglages : butée maximale, protection enfant et verrouillage du clavier.
+- Réglages : butée de température max, protection enfant et verrouillage du clavier.
 - Capteurs : température ambiante, puissance nominale, firmware, date d'installation, dernière communication, dernière remontée d'état, régime appliqué, état de chauffe, détection de fenêtre ouverte et consommation estimée.
 - Actions : actualisation à la demande, actualisation de la consommation, renommage du radiateur et récupération de la notice lorsqu'elle existe.
 - Archivage durable des relevés journaliers de consommation estimée et de durée de chauffe, avec import dans les statistiques long terme de Home Assistant.
