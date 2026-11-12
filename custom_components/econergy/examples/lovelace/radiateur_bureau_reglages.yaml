@@ -1,0 +1,14 @@
+type: entities
+title: Radiateur Bureau — réglages
+show_header_toggle: false
+entities:
+  - entity: number.econergy_bureau_consigne_eco
+    name: Consigne Éco
+  - entity: number.econergy_bureau_consigne_confort
+    name: Consigne Confort
+  - entity: number.econergy_bureau_butee_de_temperature_maximale
+    name: Butée de température max
+  - entity: switch.econergy_bureau_protection_enfant
+    name: Protection enfant
+  - entity: switch.econergy_bureau_verrouillage_du_clavier
+    name: Verrouillage du clavier

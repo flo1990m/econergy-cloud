@@ -1,0 +1,32 @@
+type: vertical-stack
+cards:
+  - type: statistics-graph
+    title: Consommation estimée — 30 derniers jours
+    entities:
+      - econergy:68c5597e5cb480c6cc800d66_estimated_consumption
+    period: day
+    days_to_show: 30
+    chart_type: bar
+    stat_types:
+      - state
+    hide_legend: true
+  - type: statistics-graph
+    title: Durée de chauffe — 30 derniers jours
+    entities:
+      - econergy:68c5597e5cb480c6cc800d66_heating_duration
+    period: day
+    days_to_show: 30
+    chart_type: bar
+    stat_types:
+      - state
+    hide_legend: true
+  - type: entities
+    title: Dernière journée disponible
+    show_header_toggle: false
+    entities:
+      - entity: sensor.econergy_bureau_consommation_estimee_dernier_jour
+        name: Consommation estimée
+      - entity: sensor.econergy_bureau_duree_de_chauffe_dernier_jour
+        name: Durée de chauffe
+      - entity: button.econergy_bureau_actualiser_la_consommation
+        name: Actualiser la consommation

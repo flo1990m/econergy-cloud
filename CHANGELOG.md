@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.5 — bêta — 12 novembre 2026
+
+- Ajoute l'état natif du chauffage réellement actif dans la fenêtre de thermostat Home Assistant.
+- Ajoute des exemples Lovelace indépendants : état, consommation, réglages, diagnostic et actions ; le graphique API 15 jours affiche les dates en JJ/MM.
+- Retire le graphique de consommation de la page de programmation, désormais exclusivement consacrée aux programmes du radiateur.
+- Corrige les libellés des actions et réglages, traduit les statuts de commande en français et harmonise l'icône d'actualisation de la consommation.
+- Fournit une carte `statistics-graph` configurée avec les identifiants de statistiques long terme Econergy pour afficher les relevés archivés sur 30 jours.
+
+
 ## 2.1.4 — bêta — 12 novembre 2026
 
 - Ajoute des exemples Lovelace de tuiles Econergy et des modèles réutilisables pour piloter les radiateurs avec l'état de chauffe réel.

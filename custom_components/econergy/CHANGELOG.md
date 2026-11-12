@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.5 — bêta — 12 novembre 2026
+
+### Thermostat et libellés
+- Expose `hvac_action` : Home Assistant distingue maintenant le radiateur arrêté, allumé au repos et réellement en chauffe.
+- Renomme l'action en « Programmes du radiateur », le réglage en « Butée de température max » et le capteur en « Détection fenêtre ouverte » (état natif Ouvert/Fermé conservé).
+- Traduit les statuts techniques des commandes en libellés français, tout en conservant le code API dans les attributs.
+- Utilise la même icône d'actualisation pour les deux boutons d'actualisation.
+
+### Lovelace et programmation
+- Ajoute des exemples de cartes facultatives pour l'état, la consommation 15 jours/30 jours, les réglages, le diagnostic et les actions.
+- La carte 30 jours utilise les identifiants de statistiques externes Recorder Econergy ; la carte 15 jours affiche les dates en JJ/MM.
+- Retire les relevés de consommation de la page « Programmes du radiateur » : cette page est désormais réservée à l'éditeur et à l'activation de la programmation.
+
+
 ## 2.1.4 — bêta — 12 novembre 2026
 
 ### Tuiles Lovelace

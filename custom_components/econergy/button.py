@@ -59,7 +59,7 @@ class _EconergyButton(CoordinatorEntity, ButtonEntity):
 class EconergyProgramOpenButton(_EconergyButton):
     """Open this radiator's friendly weekly-program editor in the HA frontend."""
 
-    _attr_name = "Programmer le radiateur"
+    _attr_name = "Programmes du radiateur"
     _attr_icon = "mdi:calendar-edit"
 
     def __init__(self, coordinator: EconergyCoordinator, device: dict[str, Any]) -> None:
@@ -102,7 +102,7 @@ class EconergyRefreshConsumptionButton(_EconergyButton):
     """Refresh the official 15-day daily consumption report."""
 
     _attr_name = "Actualiser la consommation"
-    _attr_icon = "mdi:chart-box-refresh-outline"
+    _attr_icon = "mdi:refresh"
 
     def __init__(self, coordinator: EconergyCoordinator, device: dict[str, Any]) -> None:
         super().__init__(coordinator, device)

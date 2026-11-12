@@ -444,6 +444,38 @@ class EconergyConsumptionSensor(_EconergyDeviceEntity, SensorEntity):
         }
 
 
+_COMMAND_STATUS_LABELS = {
+    "SENDING": "Envoi en cours",
+    "QUEUED": "En attente",
+    "PENDING": "En attente",
+    "PROCESSING": "En cours de traitement",
+    "IN_PROGRESS": "En cours de traitement",
+    "SENT": "Envoyée",
+    "ACKNOWLEDGED": "Reçue par le radiateur",
+    "ACK": "Reçue par le radiateur",
+    "RECEIVED": "Reçue par le radiateur",
+    "SUCCESS": "Confirmée",
+    "SUCCESSFUL": "Confirmée",
+    "SUCCEEDED": "Confirmée",
+    "COMPLETED": "Confirmée",
+    "COMPLETE": "Confirmée",
+    "DONE": "Confirmée",
+    "CONFIRMED": "Confirmée",
+    "DELIVERED": "Confirmée",
+    "APPLIED": "Appliquée",
+    "EXECUTED": "Exécutée",
+    "FAILED": "Échec",
+    "ERROR": "Erreur",
+    "REJECTED": "Refusée",
+    "REFUSED": "Refusée",
+    "CANCELLED": "Annulée",
+    "CANCELED": "Annulée",
+    "EXPIRED": "Expirée",
+    "TIMEOUT": "Délai dépassé",
+    "UNKNOWN": "Statut inconnu",
+}
+
+
 class EconergyLastCommandSensor(_EconergyDeviceEntity, SensorEntity):
     """Most recent write acknowledgement returned by Econergy."""
 
@@ -458,14 +490,23 @@ class EconergyLastCommandSensor(_EconergyDeviceEntity, SensorEntity):
     @property
     def native_value(self) -> str | None:
         command = self.coordinator.last_commands.get(self._device_id) or {}
-        status = command.get("status")
-        return str(status) if status else "Aucune commande enregistrée"
+        status = str(command.get("status") or "").strip().upper()
+        if not status:
+            return "Aucune commande enregistrée"
+        return _COMMAND_STATUS_LABELS.get(status, "En cours de traitement")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         command = self.coordinator.last_commands.get(self._device_id) or {}
+        raw_status = str(command.get("status") or "").strip().upper() or None
         return {
             "command_id": command.get("command_id"),
             "type": command.get("kind"),
             "date": command.get("updated_at"),
+            "statut_api": raw_status,
+            "statut_libelle": (
+                _COMMAND_STATUS_LABELS.get(raw_status, "En cours de traitement")
+                if raw_status
+                else None
+            ),
         }

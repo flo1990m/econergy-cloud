@@ -1,9 +1,5 @@
-/* Radiator-specific weekly programming and 15-day consumption overview. */
-const CARD_MODULE = "/econergy/econergy-weekly-program-card.js?v=2.1.4";
-
-const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-}[char]));
+/* Radiator-specific weekly programming panel. */
+const CARD_MODULE = "/econergy/econergy-weekly-program-card.js?v=2.1.5";
 
 class EconergyProgramPanel extends HTMLElement {
   constructor() {
@@ -44,14 +40,6 @@ class EconergyProgramPanel extends HTMLElement {
         .back { display:inline-flex; align-items:center; gap:7px; margin:0 0 14px; color:var(--primary-color); text-decoration:none; }
         .intro { margin-bottom:12px; line-height:1.45; }
         .section { margin-top:22px; }
-        .consumption { padding:16px; border-radius:12px; background:var(--card-background-color); }
-        .chart { display:grid; grid-template-columns:repeat(15,minmax(0,1fr)); gap:5px; align-items:end; height:170px; margin-top:14px; }
-        .bar-wrap { min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:end; height:100%; gap:5px; }
-        .bar-value { font-size:10px; color:var(--secondary-text-color); min-height:13px; white-space:nowrap; }
-        .bar { width:100%; max-width:26px; min-height:3px; background:var(--primary-color); border-radius:5px 5px 2px 2px; }
-        .bar.missing { background:var(--disabled-text-color); opacity:.35; }
-        .bar-date { font-size:10px; color:var(--secondary-text-color); writing-mode:vertical-rl; transform:rotate(180deg); height:37px; }
-        .legend { color:var(--secondary-text-color); font-size:12px; margin-top:8px; }
         .activate { padding:16px; border-radius:12px; background:var(--card-background-color); }
         .activate p { margin:0 0 12px; color:var(--secondary-text-color); line-height:1.45; }
         .activate button { border:0; border-radius:8px; padding:11px 16px; background:var(--primary-color); color:var(--text-primary-color, white); font:inherit; font-weight:600; cursor:pointer; }
@@ -59,18 +47,13 @@ class EconergyProgramPanel extends HTMLElement {
         .activation-status { min-height:18px; margin-top:10px; color:var(--secondary-text-color); font-size:13px; }
         .activation-status.error { color:var(--error-color); }
         .activation-status.success { color:var(--success-color, var(--primary-color)); }
-        .table-wrap { overflow-x:auto; margin-top:14px; }
-        table { width:100%; border-collapse:collapse; font-size:13px; }
-        th,td { padding:8px 6px; text-align:left; border-bottom:1px solid var(--divider-color); }
-        th { color:var(--secondary-text-color); font-weight:500; }
-        td.num { text-align:right; font-variant-numeric:tabular-nums; }
-        @media(max-width:600px) { :host { padding:8px; } h1 {font-size:19px;} .chart {gap:2px;} .bar-value {font-size:8px;} }
+        @media(max-width:600px) { :host { padding:8px; } h1 {font-size:19px;} }
       </style>
       <div class="wrap">
         <a class="back" id="back-link" href="/config/devices"><ha-icon icon="mdi:arrow-left"></ha-icon>Retour au radiateur</a>
         <div class="heading">
           <ha-icon icon="mdi:calendar-week"></ha-icon>
-          <div><h1>Programmer le radiateur</h1><div class="subtitle" id="device-name">Chargement du radiateur…</div></div>
+          <div><h1>Programmes du radiateur</h1><div class="subtitle" id="device-name">Chargement du radiateur…</div></div>
         </div>
         <div class="message intro">Définis les heures pendant lesquelles le radiateur chauffe en <b>Confort</b>. En dehors de ces plages, il reste en <b>Éco</b>. Tu peux prévoir jusqu'à trois périodes par jour et copier les réglages d'un jour via l'éditeur.</div>
         <div id="content"><div class="message">Chargement de la programmation…</div></div>
@@ -81,10 +64,6 @@ class EconergyProgramPanel extends HTMLElement {
             <button id="activate-program" type="button">Activer la programmation</button>
             <div id="activation-status" class="activation-status" role="status"></div>
           </div>
-        </section>
-        <section class="section">
-          <h2>Consommation estimée sur 15 jours</h2>
-          <div id="consumption" class="consumption"><div class="message">Chargement des relevés de consommation…</div></div>
         </section>
       </div>`;
   }
@@ -110,7 +89,6 @@ class EconergyProgramPanel extends HTMLElement {
     );
     if (!matching) {
       this._showMessage("Le programme de ce radiateur n'est pas encore chargé. Actualise la page dans quelques instants.", true);
-      this._renderConsumption(deviceId);
       return;
     }
 
@@ -141,7 +119,6 @@ class EconergyProgramPanel extends HTMLElement {
       this._loading = false;
       this._showMessage(error?.message || "Impossible de charger la carte de programmation.", true);
     }
-    this._renderConsumption(deviceId);
   }
 
   async _activateProgram() {
@@ -187,48 +164,6 @@ class EconergyProgramPanel extends HTMLElement {
     } finally {
       button.disabled = false;
     }
-  }
-
-  _renderConsumption(deviceId) {
-    const target = this.shadowRoot.getElementById("consumption");
-    if (!target || !this._hass) return;
-    const match = Object.entries(this._hass.states || {}).find(([entityId, state]) =>
-      entityId.startsWith("sensor.")
-      && String(state?.attributes?.econergy_device_id || "") === deviceId
-      && Array.isArray(state?.attributes?.jours_disponibles),
-    );
-    if (!match) {
-      target.innerHTML = '<div class="message">Les relevés de consommation ne sont pas encore disponibles.</div>';
-      return;
-    }
-    const days = match[1].attributes.jours_disponibles;
-    if (!days.length) {
-      target.innerHTML = '<div class="message">Aucun relevé quotidien n’a été retourné pour ce radiateur.</div>';
-      return;
-    }
-    const values = days.map((day) => day?.estimatedKWh == null ? null : Number(day.estimatedKWh));
-    const valid = values.filter((value) => Number.isFinite(value) && value >= 0);
-    const max = Math.max(0.1, ...valid);
-    const bars = days.map((day, index) => {
-      const value = values[index];
-      const known = Number.isFinite(value) && value >= 0;
-      const height = known ? Math.max(3, Math.round((value / max) * 112)) : 3;
-      const date = String(day?.date || "");
-      const label = date ? date.slice(5) : "—";
-      const display = known ? `${value.toFixed(1)} kWh` : "Aucun";
-      return `<div class="bar-wrap" title="${escapeHtml(date)} · ${escapeHtml(display)}"><div class="bar-value">${known ? value.toFixed(1) : "–"}</div><div class="bar ${known ? "" : "missing"}" style="height:${height}px"></div><div class="bar-date">${escapeHtml(label)}</div></div>`;
-    }).join("");
-    const rows = days.map((day) => {
-      const energy = day?.estimatedKWh == null ? "Aucune remontée" : `${Number(day.estimatedKWh).toFixed(2)} kWh`;
-      const seconds = day?.heatingSeconds == null ? "—" : `${(Number(day.heatingSeconds) / 3600).toFixed(1)} h`;
-      return `<tr><td>${escapeHtml(day?.date || "—")}</td><td class="num">${escapeHtml(energy)}</td><td class="num">${escapeHtml(seconds)}</td></tr>`;
-    }).join("");
-    target.innerHTML = `
-      <div><b>Énergie estimée par jour</b></div>
-      <div class="chart">${bars}</div>
-      <div class="legend">Données des 15 derniers jours complets. La journée actuelle n'est pas incluse. Une absence de relevé n'est pas comptée comme zéro.</div>
-      <div class="table-wrap"><table><thead><tr><th>Jour</th><th class="num">Énergie estimée</th><th class="num">Chauffe</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="legend">L'énergie est estimée à partir de la durée de chauffe et de la puissance nominale du radiateur. Ce n'est pas un relevé Linky.</div>`;
   }
 
   _showMessage(message, error = false) {

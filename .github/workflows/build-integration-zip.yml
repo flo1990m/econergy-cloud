@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(python -c 'import json; print(json.load(open("custom_components/econergy/manifest.json", encoding="utf-8"))["version"])')"
-          test "$VERSION" = "2.1.4"
+          test "$VERSION" = "2.1.5"
           echo "Building Econergy Cloud $VERSION"
 
       - name: Create integration ZIP
@@ -38,7 +38,7 @@ jobs:
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: econergy-2.1.4
+          name: econergy-2.1.5
           path: econergy.zip
           if-no-files-found: error
           retention-days: 30

@@ -1,0 +1,18 @@
+type: entities
+title: Radiateur Bureau — diagnostic
+show_header_toggle: false
+entities:
+  - entity: sensor.econergy_bureau_puissance_nominale
+    name: Puissance nominale
+  - entity: sensor.econergy_bureau_firmware
+    name: Firmware
+  - entity: sensor.econergy_bureau_date_d_installation
+    name: Date d'installation
+  - entity: sensor.econergy_bureau_derniere_communication
+    name: Dernière communication
+  - entity: sensor.econergy_bureau_derniere_remontee_d_etat
+    name: Dernière remontée d'état
+  - entity: sensor.econergy_bureau_statut_de_la_derniere_commande
+    name: Statut de la dernière commande
+  - entity: button.econergy_bureau_actualiser_l_etat
+    name: Actualiser l'état

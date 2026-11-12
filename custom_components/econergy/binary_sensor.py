@@ -13,7 +13,7 @@ from .coordinator import EconergyCoordinator
 
 
 _FIELDS = (
-    ("windowOpen", "Fenêtre détectée ouverte", "window", "mdi:window-open-variant"),
+    ("windowOpen", "Détection fenêtre ouverte", "window", "mdi:window-open-variant"),
     ("heating", "Chauffage en cours", "running", "mdi:radiator"),
     ("fanBoost", "Ventilateur boost", "running", "mdi:fan"),
 )
