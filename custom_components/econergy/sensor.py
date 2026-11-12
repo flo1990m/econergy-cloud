@@ -89,6 +89,8 @@ class EconergyAmbientTemperatureSensor(_EconergyDeviceEntity, SensorEntity):
         info = device.get("info") or {}
         firmware = info.get("firmware") or {}
         request = device.get("_ha_status_request") or {}
+        consumption = self.coordinator.consumption.get(self._device_id) or {}
+        consumption_days = consumption.get("days") or []
         return {
             "econergy_device_id": self._device_id,
             "mode": state.get("mode"),
@@ -108,7 +110,10 @@ class EconergyAmbientTemperatureSensor(_EconergyDeviceEntity, SensorEntity):
             "api_version": self.coordinator.data.get("api_version") if self.coordinator.data else None,
             "api_settings": self.coordinator.settings.get(self._device_id),
             "api_device_state": state,
-            "api_consumption_15_days": self.coordinator.consumption.get(self._device_id),
+            "api_consumption_15_days": {
+                **consumption,
+                "days": consumption_days[-15:],
+            },
             "api_device_info": info,
             "api_device_field_names": sorted(str(key) for key in device if not str(key).startswith("_")),
         }
@@ -387,34 +392,52 @@ class EconergyConsumptionSensor(_EconergyDeviceEntity, SensorEntity):
 
     @property
     def _latest_day(self) -> dict[str, Any] | None:
-        days = self._consumption.get("days") or []
-        return days[-1] if days and isinstance(days[-1], dict) else None
+        days = [
+            day for day in (self._consumption.get("days") or [])
+            if isinstance(day, dict) and isinstance(day.get("date"), str)
+        ]
+        return max(days, key=lambda day: day["date"]) if days else None
 
     @property
     def native_value(self) -> float | None:
         day = self._latest_day
-        if not day or day.get(self._field) is None:
+        if not day:
             return None
+        raw_value = day.get(self._field)
+        # The API may return null when no report was received for the day.
+        # Show zero in the dashboard tile while keeping the raw null in the archive.
+        if raw_value is None:
+            return 0.0
         try:
-            value = float(day[self._field])
+            value = float(raw_value)
             return value / 3600 if self._field == "heatingSeconds" else value
         except (TypeError, ValueError):
             return None
 
     @property
     def available(self) -> bool:
-        return super().available and self._latest_day is not None and self._field in self._latest_day
+        return super().available and self._latest_day is not None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         days = self._consumption.get("days") or []
+        api_days = days[-15:]
+        statistic_suffix = (
+            "estimated_consumption"
+            if self._field == "estimatedKWh"
+            else "heating_duration"
+        )
         return {
             "econergy_device_id": self._device_id,
             "date_du_releve": (self._latest_day or {}).get("date"),
             "puissance_nominale_w": self._consumption.get("powerW"),
-            "jours_disponibles": days,
-            "nombre_de_jours": len(days),
-            "valeur_null_signifie": "Aucune remontée du radiateur pour cette journée, ce n'est pas une consommation nulle.",
+            "jours_disponibles": api_days,
+            "nombre_de_jours": len(api_days),
+            "nombre_de_jours_archive": len(days),
+            "date_debut_archive": days[0].get("date") if days else None,
+            "date_fin_archive": days[-1].get("date") if days else None,
+            "identifiant_statistique_longue_duree": f"econergy:{self._device_id}_{statistic_suffix}",
+            "valeur_null_signifie": "La tuile affiche 0 lorsque l'API ne fournit pas de mesure. La valeur brute reste null dans l'archive : une absence de remontée n'est pas une consommation nulle confirmée.",
             "nature_estimation": "Durée de chauffe × puissance nominale ; ce n'est pas un relevé de compteur.",
             "erreur_api": self.coordinator.consumption_errors.get(self._device_id),
             "date_du_cache": self.coordinator.consumption_loaded_date,
