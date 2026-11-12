@@ -40,8 +40,7 @@ button_card_templates:
         - width: 16px
         - color: |
             [[[
-              const selected = entity.state === 'heat' &&
-                entity.attributes.preset_mode === variables.preset;
+              const selected = entity.attributes.preset_mode === variables.preset;
               return selected ? '#ff792e' : 'var(--secondary-text-color)';
             ]]]
       name:
