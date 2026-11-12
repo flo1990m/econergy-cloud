@@ -1,6 +1,15 @@
 # Changelog
 
-## 2.1.1 — 11 novembre 2026
+## 2.1.2 — bêta — 12 novembre 2026
+
+### Correctifs
+- Corrige le cycle de vie de l'écouteur ponctuel `homeassistant_started` : il n'est plus désinscrit une seconde fois lors du déchargement de l'intégration.
+- Conserve une désinscription explicite si l'intégration est déchargée avant le démarrage complet de Home Assistant.
+
+### Compatibilité
+- Version bêta ; aucune modification de l'autorisation OAuth ni de la configuration des appareils.
+
+## 2.1.1 — bêta — 11 novembre 2026
 
 ### Correctifs
 - Corrige la classe d'état des capteurs de consommation énergétique : les consommations journalières utilisent désormais `total`, tandis que la durée de chauffe conserve `measurement`.
@@ -14,7 +23,7 @@
 
 # Econergy Cloud — historique des versions
 
-## 2.1.0 — couverture de l'API publique Econergy Lab
+## 2.1.0 — bêta — couverture de l'API publique Econergy Lab
 
 - Ajout des routes documentées `GET/PATCH /devices/{deviceId}/settings` : butée maximale, verrouillage clavier et protection enfant.
 - Ajout de `GET /devices/{deviceId}/consumption` : 15 jours de durée de chauffe et d'énergie estimée, cache quotidien.
