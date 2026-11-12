@@ -1,11 +1,11 @@
 # Econergy Cloud — Home Assistant
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://www.hacs.xyz/)
-[![Version](https://img.shields.io/badge/version-2.1.1-blue.svg)](https://github.com/flo1990m/econergy-cloud)
+[![Version bêta](https://img.shields.io/badge/version-2.1.2--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
 
 Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera, basée sur l'API officielle Econergy Lab.
 
-> Projet communautaire indépendant, non affilié à Econergy et non officiellement pris en charge par le fabricant. L'intégration dépend de l'API cloud Econergy ; ses fonctions peuvent évoluer avec l'API.
+> **Version bêta :** l'intégration est encore en développement et peut contenir des défauts. Projet communautaire indépendant, non affilié à Econergy et non officiellement pris en charge par le fabricant. Elle dépend de l'API cloud Econergy ; ses fonctions peuvent évoluer avec l'API.
 
 ## Fonctionnalités
 
