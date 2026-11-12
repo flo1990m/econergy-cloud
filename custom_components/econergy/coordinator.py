@@ -62,7 +62,9 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.consumption: dict[str, dict[str, Any]] = {}
         self.consumption_errors: dict[str, str] = {}
         self.consumption_loaded_date: str | None = None
-        self._consumption_store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}_consumption_history")
+        self._consumption_store = Store(
+            hass, 1, f"{DOMAIN}_{entry.entry_id}_consumption_history"
+        )
         self._consumption_lock = asyncio.Lock()
         self._consumption_load_task: asyncio.Task | None = None
         self.last_commands: dict[str, dict[str, Any]] = {}
@@ -188,13 +190,16 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         device_name: str,
         days: list[dict[str, Any]],
     ) -> None:
-        """Import daily energy and heating-duration points into Recorder long-term statistics."""
+        """Import daily energy and heating-duration points into Recorder statistics."""
         energy_id = f"{DOMAIN}:{device_id}_estimated_consumption"
         duration_id = f"{DOMAIN}:{device_id}_heating_duration"
         energy_metadata = StatisticMetaData(
             mean_type=StatisticMeanType.NONE,
             has_sum=True,
-            name=f"Econergy {device_name} - consommation estimée journalière",
+            name=(
+                f"Econergy {device_name} - "
+                "consommation estimée journalière"
+            ),
             source=DOMAIN,
             statistic_id=energy_id,
             unit_class=EnergyConverter.UNIT_CLASS,
@@ -203,7 +208,10 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         duration_metadata = StatisticMetaData(
             mean_type=StatisticMeanType.NONE,
             has_sum=True,
-            name=f"Econergy {device_name} - durée de chauffe journalière",
+            name=(
+                f"Econergy {device_name} - "
+                "durée de chauffe journalière"
+            ),
             source=DOMAIN,
             statistic_id=duration_id,
             unit_class=None,
@@ -216,7 +224,10 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         duration_sum = 0.0
         paris_tz = ZoneInfo("Europe/Paris")
 
-        for day in sorted(days, key=lambda item: str(item.get("date") or "")):
+        for day in sorted(
+            days,
+            key=lambda item: str(item.get("date") or ""),
+        ):
             date_text = day.get("date")
             if not isinstance(date_text, str):
                 continue
@@ -237,7 +248,11 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             StatisticData(start=start, state=energy, sum=energy_sum)
                         )
                 except (TypeError, ValueError):
-                    _LOGGER.debug("Consommation Econergy invalide pour %s (%s)", date_text, device_id)
+                    _LOGGER.debug(
+                        "Consommation Econergy invalide pour %s (%s)",
+                        date_text,
+                        device_id,
+                    )
 
             raw_duration = day.get("heatingSeconds")
             if raw_duration is not None:
@@ -253,7 +268,11 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             )
                         )
                 except (TypeError, ValueError):
-                    _LOGGER.debug("Durée de chauffe Econergy invalide pour %s (%s)", date_text, device_id)
+                    _LOGGER.debug(
+                        "Durée de chauffe Econergy invalide pour %s (%s)",
+                        date_text,
+                        device_id,
+                    )
 
         try:
             if energy_points:
@@ -612,7 +631,6 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # The consumption endpoint changes at most once per day. Read it after
         # the Europe/Paris date changes, in the background, without delaying
         # climate state updates.
-        from zoneinfo import ZoneInfo
         today = datetime.now(ZoneInfo("Europe/Paris")).date().isoformat()
         if self.consumption_loaded_date != today and (
             self._consumption_load_task is None or self._consumption_load_task.done()
@@ -696,7 +714,6 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return
 
             devices = (self.data or {}).get("devices", [])
-            all_devices_loaded = True
             for index, device in enumerate(devices):
                 device_id = str(device.get("id") or "")
                 if not device_id:
@@ -717,18 +734,15 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except EconergyAuthError:
                     raise
                 except EconergyApiError as err:
-                    all_devices_loaded = False
                     self.consumption_errors[device_id] = str(err)
                     _LOGGER.warning("Consommation Econergy indisponible pour %s : %s", device_id, err)
                 if index < len(devices) - 1:
                     await asyncio.sleep(0.25)
 
-            if all_devices_loaded:
-                self.consumption_loaded_date = today
-            elif self.consumption_loaded_date != today:
-                # Retry on the next coordinator cycle instead of marking a
-                # partially completed daily import as successful.
-                self.consumption_loaded_date = None
+            # The endpoint is refreshed once per local day. Keep this
+            # cadence even when one device fails; errors remain visible and
+            # a manual refresh can retry that radiator without hammering the API.
+            self.consumption_loaded_date = today
 
             self._schedule_consumption_save()
             if self.data is not None:
