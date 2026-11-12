@@ -2,7 +2,7 @@
 
 Les exemples sont facultatifs et indépendants : ajoute uniquement les cartes qui t'intéressent. Ils sont fournis pour le radiateur Bureau et peuvent être adaptés aux autres radiateurs.
 
-Ce dossier contient une tuile d'exemple pour le radiateur Bureau et les modèles communs utilisés par les tuiles des autres radiateurs.
+Il contient la tuile de pilotage de base et ses modèles communs, ainsi que plusieurs exemples facultatifs.
 
 ## Contenu
 
@@ -18,7 +18,7 @@ Ce dossier contient une tuile d'exemple pour le radiateur Bureau et les modèles
 
 ## Dépendance
 
-Ces exemples utilisent la carte personnalisée **Button Card** (`custom:button-card`). Ils ne sont pas des cartes natives Home Assistant et ne sont pas ajoutés automatiquement au tableau de bord lors de l'installation de l'intégration.
+Seule la tuile de pilotage de base (`radiateur_bureau.yaml`) utilise **Button Card** (`custom:button-card`) et les modèles du fichier compagnon. Les cartes d'état, de réglages, de diagnostic et d'actions sont natives Home Assistant. Le graphique 15 jours nécessite en plus **ApexCharts Card**. Aucune de ces cartes n'est ajoutée automatiquement au tableau de bord lors de l'installation de l'intégration.
 
 Pour les trois autres radiateurs, duplique `radiateur_bureau.yaml` et remplace les identifiants `climate.econergy_bureau` et `binary_sensor.econergy_bureau_chauffage_en_cours` par ceux du radiateur concerné. Les modèles communs restent identiques.
 
