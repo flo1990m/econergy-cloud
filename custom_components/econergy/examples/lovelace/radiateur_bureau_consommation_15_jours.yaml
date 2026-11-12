@@ -1,0 +1,31 @@
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Consommation estimée — 15 derniers jours
+  show_states: false
+graph_span: 15d
+span:
+  start: day
+  offset: -14d
+series:
+  - entity: sensor.econergy_bureau_consommation_estimee_dernier_jour
+    name: Énergie estimée
+    type: column
+    data_generator: |
+      const days = entity.attributes.jours_disponibles || [];
+      return days.map((day) => {
+        const [year, month, date] = String(day.date || "").split("-").map(Number);
+        if (!year || !month || !date) return null;
+        const timestamp = new Date(year, month - 1, date).getTime();
+        const value = day.estimatedKWh == null ? null : Number(day.estimatedKWh);
+        return [timestamp, Number.isFinite(value) ? value : null];
+      }).filter((point) => point !== null);
+apex_config:
+  xaxis:
+    type: datetime
+    labels:
+      format: dd/MM
+      datetimeUTC: false
+  yaxis:
+    title:
+      text: kWh
