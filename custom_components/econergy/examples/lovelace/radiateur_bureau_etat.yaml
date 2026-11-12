@@ -1,0 +1,16 @@
+type: entities
+title: Radiateur Bureau — état
+show_header_toggle: false
+entities:
+  - entity: climate.econergy_bureau
+    name: Thermostat
+  - entity: sensor.econergy_bureau_temperature_ambiante
+    name: Température ambiante
+  - entity: sensor.econergy_bureau_regime_applique
+    name: Régime appliqué
+  - entity: binary_sensor.econergy_bureau_chauffage_en_cours
+    name: Chauffage en cours
+  - entity: binary_sensor.econergy_bureau_fenetre_detectee_ouverte
+    name: Détection fenêtre ouverte
+  - entity: binary_sensor.econergy_bureau_ventilateur_boost
+    name: Ventilateur boost
