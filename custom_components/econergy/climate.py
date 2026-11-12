@@ -6,7 +6,7 @@ from datetime import datetime
 import logging
 from typing import Any
 
-from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
+from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACAction, HVACMode
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
@@ -189,6 +189,19 @@ class EconergyRadiatorClimate(CoordinatorEntity, RestoreEntity, ClimateEntity):
         if mode is None:
             return None
         return HVACMode.OFF if mode == MODE_OFF else HVACMode.HEAT
+
+    @property
+    def hvac_action(self) -> HVACAction:
+        """Expose whether the radiator is actually heating, not just enabled."""
+        mode = self._display_mode
+        if mode is None or mode == MODE_OFF:
+            return HVACAction.OFF
+        heating = self._state.get("heating")
+        if heating is True or heating == 1 or (
+            isinstance(heating, str) and heating.strip().lower() in {"true", "on", "yes", "1", "heating"}
+        ):
+            return HVACAction.HEATING
+        return HVACAction.IDLE
 
     @property
     def preset_mode(self) -> str | None:
