@@ -33,6 +33,7 @@ from .const import (
     PROGRAM_POLL_INTERVAL_SECONDS,
     STATUS_REQUEST_COMMAND_TIMEOUT_SECONDS,
     STATUS_REQUEST_DEFAULT_RETRY_AFTER_SECONDS,
+    STATUS_REQUEST_MIN_INTERVAL_SECONDS,
     INVENTORY_POLL_INTERVAL_SECONDS,
     STATUS_REQUEST_POLL_INTERVAL_SECONDS,
     STATUS_REQUEST_STATE_TIMEOUT_SECONDS,
@@ -75,6 +76,7 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_write_locks: dict[str, asyncio.Lock] = {}
         self._initial_devices: list[dict[str, Any]] | None = None
         self._startup_task: asyncio.Task | None = None
+        self._auto_status_refresh_task: asyncio.Task | None = None
         self._startup_unsubscribe: Callable[[], None] | None = None
         super().__init__(
             hass,
@@ -354,6 +356,80 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception:
             _LOGGER.exception("Échec de l'initialisation différée Econergy")
 
+        # Start the independent radio-refresh loop after the initial snapshot
+        # is available. It also starts when a later startup read failed, since
+        # async_initialize already loaded the current device inventory.
+        if not self.hass.is_stopping:
+            self._start_automatic_status_refresh()
+
+    def _start_automatic_status_refresh(self) -> None:
+        """Start one managed background task for periodic live radiator readings."""
+        if (
+            self._auto_status_refresh_task is not None
+            and not self._auto_status_refresh_task.done()
+        ):
+            return
+        self._auto_status_refresh_task = self.hass.async_create_background_task(
+            self._async_automatic_status_refresh(),
+            f"Econergy automatic status refresh {self.home_id}",
+        )
+
+    async def _async_automatic_status_refresh(self) -> None:
+        """Request one fresh radiator status at a time, rotating over the home.
+
+        The spacing is calculated so a home with four radiators receives one
+        radio request every 75 seconds: each radiator is therefore refreshed
+        about every five minutes. The one-minute floor respects Econergy's
+        per-radiator status-request limit and avoids parallel radio requests.
+        """
+        await asyncio.sleep(10)
+        cursor = 0
+
+        while not self.hass.is_stopping:
+            devices = [
+                device
+                for device in ((self.data or {}).get("devices") or [])
+                if device.get("id")
+            ]
+            if not devices:
+                await asyncio.sleep(STATUS_REQUEST_MIN_INTERVAL_SECONDS)
+                continue
+
+            cursor %= len(devices)
+            device_id = str(devices[cursor]["id"])
+            cursor = (cursor + 1) % len(devices)
+            spacing = max(
+                float(STATUS_REQUEST_MIN_INTERVAL_SECONDS),
+                INVENTORY_POLL_INTERVAL_SECONDS / len(devices),
+            )
+            started = asyncio.get_running_loop().time()
+
+            try:
+                result = await self.async_request_device_status(device_id)
+                if result.get("fresh"):
+                    _LOGGER.debug(
+                        "Actualisation automatique Econergy confirmée pour %s (updatedAt=%s)",
+                        device_id,
+                        result.get("state_updated_at"),
+                    )
+                else:
+                    _LOGGER.warning(
+                        "Actualisation automatique Econergy non confirmée pour %s (statut=%s, erreur=%s)",
+                        device_id,
+                        result.get("status"),
+                        result.get("error"),
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                _LOGGER.exception(
+                    "Échec de l'actualisation automatique Econergy pour %s",
+                    device_id,
+                )
+
+            elapsed = asyncio.get_running_loop().time() - started
+            await asyncio.sleep(max(1.0, spacing - elapsed))
+
     def async_stop_deferred_initialization(self) -> None:
         """Unsubscribe from startup and cancel the startup task on unload."""
         unsubscribe = self._startup_unsubscribe
@@ -366,28 +442,55 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             task.cancel()
         self._startup_task = None
 
+        auto_task = self._auto_status_refresh_task
+        if auto_task is not None and not auto_task.done():
+            auto_task.cancel()
+        self._auto_status_refresh_task = None
+
     @staticmethod
-    def _timestamp_is_after(value: Any, reference: datetime) -> bool:
-        """Compare an API ISO timestamp with the time at which we requested it."""
+    def _parse_api_timestamp(value: Any) -> datetime | None:
+        """Parse an API timestamp as an aware UTC datetime."""
         if not isinstance(value, str) or not value.strip():
-            return False
+            return None
         try:
             parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
             if parsed.tzinfo is None:
                 parsed = parsed.replace(tzinfo=timezone.utc)
-            return parsed.astimezone(timezone.utc) > reference
+            return parsed.astimezone(timezone.utc)
         except (TypeError, ValueError, OverflowError):
-            return False
+            return None
+
+    @staticmethod
+    def _timestamp_is_after(value: Any, reference: datetime) -> bool:
+        """Compare an API ISO timestamp with the time at which we requested it."""
+        parsed = EconergyCoordinator._parse_api_timestamp(value)
+        return parsed is not None and parsed > reference.astimezone(timezone.utc)
 
     @staticmethod
     def _merge_status(device: dict[str, Any], status: dict[str, Any]) -> dict[str, Any]:
-        """Merge a direct device status response without losing list metadata."""
+        """Merge API data without allowing an older cloud snapshot to roll state back."""
         merged = {**device, **status}
         for key in ("info", "state"):
             old_value = device.get(key)
             new_value = status.get(key)
-            if isinstance(old_value, dict) and isinstance(new_value, dict):
-                merged[key] = {**old_value, **new_value}
+            if not isinstance(old_value, dict) or not isinstance(new_value, dict):
+                continue
+
+            if key == "state":
+                old_updated = EconergyCoordinator._parse_api_timestamp(
+                    old_value.get("updatedAt")
+                )
+                new_updated = EconergyCoordinator._parse_api_timestamp(
+                    new_value.get("updatedAt")
+                )
+                if old_updated is not None and (
+                    new_updated is None or old_updated > new_updated
+                ):
+                    # The existing snapshot came from a newer status request.
+                    merged[key] = {**new_value, **old_value}
+                    continue
+
+            merged[key] = {**old_value, **new_value}
         return merged
 
     async def _request_and_confirm_device_status(
@@ -401,7 +504,7 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         loop = asyncio.get_running_loop()
         cooldown_until = self.status_request_cooldowns.get(device_id, 0.0)
         last_attempt = self.status_request_last_attempt.get(device_id, 0.0)
-        minimum_interval_remaining = 60.0 - (loop.time() - last_attempt) if last_attempt else 0.0
+        minimum_interval_remaining = STATUS_REQUEST_MIN_INTERVAL_SECONDS - (loop.time() - last_attempt) if last_attempt else 0.0
         if minimum_interval_remaining > 0:
             remaining = max(1, int(minimum_interval_remaining))
             return None, {
