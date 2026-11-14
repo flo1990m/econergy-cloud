@@ -1,7 +1,7 @@
 # Econergy Cloud — Home Assistant
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://www.hacs.xyz/)
-[![Version bêta](https://img.shields.io/badge/version-2.1.6--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
+[![Version bêta](https://img.shields.io/badge/version-2.1.7--b%C3%AAta-orange.svg)](https://github.com/flo1990m/econergy-cloud/releases)
 
 Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera, basée sur l'API officielle Econergy Lab.
 
@@ -14,7 +14,9 @@ Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera
 - Programmation hebdomadaire avec un éditeur en français : sept jours, jusqu'à trois plages Confort par jour, consignes Éco/Confort et copie des réglages entre jours. L'activation du mode Programmation reste gérée depuis le pilotage du radiateur.
 - Réglages : butée de température max, protection enfant et verrouillage du clavier.
 - Capteurs : température ambiante, puissance nominale, firmware, date d'installation, dernière communication, dernière remontée d'état, régime appliqué, état de chauffe, détection de fenêtre ouverte et consommation estimée.
-- Actions : actualisation combinée de l'état et de la consommation, renommage du radiateur et récupération de la notice PDF via l'API Econergy.
+- Actualisation automatique des températures par demande de statut radio, avec un cycle cible d'environ cinq minutes par radiateur et un espacement minimal de 60 secondes entre demandes.
+- Actions : actualisation combinée manuelle de l'état et de la consommation, renommage du radiateur et récupération de la notice PDF via l'API Econergy.
+- Suppression sécurisée des anciens appareils dans Home Assistant lorsque leur identifiant n'est plus présent dans l'inventaire Econergy.
 - Archivage durable des relevés journaliers de consommation estimée et de durée de chauffe, avec import dans les statistiques long terme de Home Assistant.
 - Suivi des commandes avec attente de leur confirmation par l'API ; le dernier statut est conservé après un redémarrage de Home Assistant et aucune commande incertaine n'est renvoyée automatiquement.
 - Régime appliqué déterminé à partir de l'état du radiateur et, en mode Programmation, de la consigne et du créneau hebdomadaire en cours.
@@ -93,7 +95,7 @@ Pour la durée de chauffe, utilisez `econergy:68c5597e5cb480c6cc800d66_heating_d
 - La détection de fenêtre ouverte est exposée en lecture seule dans les routes actuellement documentées. Aucune commande documentée d'activation/désactivation n'est disponible à ce jour.
 - La notice est demandée à l'API via `GET /devices/{deviceId}/manual?lang=fr`. L'intégration ouvre le lien HTTPS retourné. Si l'API ne fournit pas le lien PDF attendu (erreur API ou réponse sans URL), l'erreur est remontée sans supposer que le document est absent.
 - L'endpoint de consommation utilisé par l'intégration retourne les 15 dernières journées complètes, mais l'intégration les archive durablement dans Home Assistant et alimente ses statistiques long terme. Les valeurs restent des estimations calculées à partir de la durée de chauffe et de la puissance nominale ; ce ne sont pas des relevés Linky ni des mesures électriques directes. Lorsqu'une journée est renvoyée sans mesure (`null`), la tuile affiche `0` par convention, tandis que l'archive conserve l'absence de donnée.
-- La température et les états sont les dernières valeurs publiées par les radiateurs. Une lecture API n'implique pas nécessairement une nouvelle remontée physique.
+- La lecture de l'inventaire cloud est effectuée toutes les cinq minutes. En complément, l'intégration demande automatiquement une nouvelle remontée d'état aux radiateurs, un par un : avec quatre radiateurs, chaque appareil est sollicité environ toutes les cinq minutes. Le bouton « Actualiser les infos » reste disponible pour forcer une demande manuelle.
 - Les scénarios, configurations avancées, gestion des membres et les commandes de présence/absence ne sont pas exposés par les routes publiques actuellement utilisées/documentées par cette version ; ils ne sont pas simulés par l'intégration.
 
 ## API utilisée
