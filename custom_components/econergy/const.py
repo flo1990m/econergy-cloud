@@ -1,7 +1,7 @@
 """Constants for Econergy Cloud."""
 
 DOMAIN = "econergy"
-NAME = "Econergy Cloud 2.1.6 (Bêta)"
+NAME = "Econergy Cloud 2.1.7 (Bêta)"
 BASE_URL = "https://econergy-app.fr/api/smarthome/v1"
 
 # Econergy Lab public OAuth application. Public clients do not use a secret.
@@ -13,9 +13,10 @@ OAUTH_SCOPES = "readonly write multihome"
 PROGRAM_PANEL_PATH = "econergy-program"
 PROGRAM_PANEL_URL = "/econergy-program"
 
-# Read the already-published home inventory every five minutes. This is a GET
-# only; it does not wake radiator radios. A forced radio refresh is user-driven.
+# Read the published home inventory every five minutes.
 INVENTORY_POLL_INTERVAL_SECONDS = 300
+# Econergy allows at most one status-request per radiator per minute.
+STATUS_REQUEST_MIN_INTERVAL_SECONDS = 60
 STATUS_REQUEST_COMMAND_TIMEOUT_SECONDS = 20
 STATUS_REQUEST_STATE_TIMEOUT_SECONDS = 30
 STATUS_REQUEST_POLL_INTERVAL_SECONDS = 2
