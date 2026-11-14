@@ -1,4 +1,4 @@
-Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera via l'API officielle Econergy Lab. Elle fournit le pilotage du chauffage, la programmation hebdomadaire, les réglages, les capteurs de diagnostic, l'archivage des consommations journalières et des exemples Lovelace facultatifs.
+Intégration communautaire Home Assistant pour les radiateurs Econergy / Carrera via l'API officielle Econergy Lab. Elle fournit le pilotage du chauffage, l'actualisation automatique des températures, la programmation hebdomadaire, les réglages, les capteurs de diagnostic, l'archivage des consommations journalières et la suppression sécurisée des anciens appareils, avec des exemples Lovelace facultatifs.
 
 ## Historique et graphiques de consommation
 
