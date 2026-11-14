@@ -741,7 +741,7 @@ class EconergyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.last_commands = {key: value for key, value in self.last_commands.items() if key in known_ids}
 
         _LOGGER.debug(
-            "Lecture Econergy terminée : %s radiateur(s) listé(s), sans demande radio automatique ; prochaine lecture dans 5 minutes",
+            "Inventaire Econergy actualisé : %s radiateur(s) listé(s) ; actualisation radio automatique gérée séparément",
             len(refreshed_devices),
         )
 
