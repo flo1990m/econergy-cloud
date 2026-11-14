@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -250,6 +251,47 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     coordinator.async_start_deferred_initialization(entry)
     return True
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    device_entry: dr.DeviceEntry,
+) -> bool:
+    """Allow removal only when Econergy no longer reports this radiator.
+
+    This keeps active devices protected while allowing orphaned device records
+    left behind after a radiator was re-paired or replaced to be removed.
+    """
+    entry_data = hass.data.get(DOMAIN, {}).get(config_entry.entry_id)
+    coordinator = (
+        entry_data.get("coordinator")
+        if isinstance(entry_data, dict)
+        else None
+    )
+    if coordinator is None or coordinator.data is None:
+        return False
+
+    device_ids = {
+        str(identifier[1])
+        for identifier in device_entry.identifiers
+        if len(identifier) == 2 and identifier[0] == DOMAIN
+    }
+    if not device_ids:
+        return False
+
+    current_device_ids = {
+        str(device.get("id"))
+        for device in coordinator.data.get("devices", [])
+        if device.get("id")
+    }
+    can_remove = device_ids.isdisjoint(current_device_ids)
+    if can_remove:
+        _LOGGER.info(
+            "Suppression de l'ancien appareil Econergy du registre Home Assistant : %s",
+            ", ".join(sorted(device_ids)),
+        )
+    return can_remove
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
